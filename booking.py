@@ -1351,6 +1351,7 @@ def process_reminders() -> Dict[str, Any]:
                         reason=f"2-hour reminder failed for {record.user} ({record.service} on {record.date})",
                     )
 
+    return results
 
 # ---------------------------------------------------------------------------
 # Calendar health check
