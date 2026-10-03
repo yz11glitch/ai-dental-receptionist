@@ -225,8 +225,21 @@ def resolve_time_text(time_text: str) -> Optional[str]:
     if text in aliases:
         return aliases[text]
 
-    # Normalise dot-notation times: "9.00am" → "9:00am", "9.30" → "9:30"
+    # Normalize dot notation before token extraction so "3.30pm" is treated as
+    # one token ("3:30pm"), not a fragmented "30pm".
     text = re.sub(r'(\d+)\.(\d+)', r'\1:\2', text)
+
+    # Allow confirmations around a specific time, e.g. "10am yes", "yes 10:30",
+    # by extracting the first concrete time token from the message.
+    embedded_time = re.search(r"\b\d{1,2}(?::\d{2})?\s*(?:am|pm)\b", text)
+    if embedded_time:
+        text = embedded_time.group(0)
+    else:
+        embedded_24h = re.search(r"\b\d{1,2}:\d{2}\b", text)
+        if embedded_24h:
+            text = embedded_24h.group(0)
+
+    # Normalise dot-notation times: "9.00am" → "9:00am", "9.30" → "9:30"
     text = text.replace(".", "").replace(" ", "")
 
     patterns = [
