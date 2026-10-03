@@ -9,7 +9,6 @@ import os
 
 # Must be set before importing app
 os.environ.setdefault("OPENAI_API_KEY", "test-key")
-os.environ["DATABASE_URL"] = "sqlite:///test_bug_fixes.db"
 
 import pytest
 from datetime import datetime
@@ -39,15 +38,6 @@ TZ = ZoneInfo("Asia/Kuala_Lumpur")
 def seed_clinic():
     """Seed demo clinic once for the full test session."""
     ensure_demo_clinic_seeded()
-
-
-@pytest.fixture(scope="session", autouse=True)
-def cleanup_test_db():
-    yield
-    try:
-        os.remove("test_bug_fixes.db")
-    except FileNotFoundError:
-        pass
 
 
 @pytest.fixture(autouse=True)

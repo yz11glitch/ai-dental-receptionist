@@ -5,7 +5,6 @@ from zoneinfo import ZoneInfo
 
 # Must be set before importing app.
 os.environ.setdefault("OPENAI_API_KEY", "test-key")
-os.environ["DATABASE_URL"] = "sqlite:///test_metrics_phase1.db"
 
 import app as app_module
 from app import (
@@ -79,23 +78,11 @@ def _get_metric(clinic_id, metric_date):
         )
 
 
-def _ensure_dashboard_clinic(clinic_id=1):
-    with SessionLocal() as db:
-        existing = db.query(Clinic).filter(Clinic.id == clinic_id).first()
-        if existing:
-            return
-        db.add(
-            Clinic(
-                id=clinic_id,
-                name="Dashboard Clinic",
-                location="KL",
-                timezone="Asia/Kuala_Lumpur",
-                open_hour=10,
-                close_hour=18,
-                hours_text="Mon-Sat 10:00-18:00",
-            )
-        )
-        db.commit()
+def _ensure_dashboard_clinic():
+    # Clinic 1 is the shared demo clinic. Seed it the same way the app does
+    # (with its services) so later test modules that rely on
+    # get_default_clinic() are not left with a service-less clinic.
+    app_module.ensure_demo_clinic_seeded()
 
 
 def _fake_run_ai(user, message, clinic):

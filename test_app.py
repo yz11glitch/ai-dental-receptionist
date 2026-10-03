@@ -2,7 +2,6 @@ import os
 
 # Must be set before importing app — app.py reads these at module level.
 os.environ.setdefault("OPENAI_API_KEY", "test-key")
-os.environ["DATABASE_URL"] = "sqlite:///test_app.db"
 
 import pytest
 from datetime import datetime, timedelta
@@ -67,15 +66,6 @@ TZ = ZoneInfo("Asia/Kuala_Lumpur")
 def seed_clinic():
     """Seed demo clinic once for the full test session."""
     ensure_demo_clinic_seeded()
-
-
-@pytest.fixture(scope="session", autouse=True)
-def cleanup_test_db():
-    yield
-    try:
-        os.remove("test_app.db")
-    except FileNotFoundError:
-        pass
 
 
 # ---------------------------------------------------------------------------

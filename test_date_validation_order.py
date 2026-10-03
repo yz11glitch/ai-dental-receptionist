@@ -12,7 +12,6 @@ Covers:
 import os
 
 os.environ.setdefault("OPENAI_API_KEY", "test-key")
-os.environ["DATABASE_URL"] = "sqlite:///test_date_validation.db"
 
 import pytest
 from datetime import datetime, timedelta
