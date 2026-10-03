@@ -1,5 +1,5 @@
 import os
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from unittest.mock import patch
 from zoneinfo import ZoneInfo
 
@@ -199,11 +199,15 @@ def test_repeated_same_day_escalation_does_not_overcount_conversations_handled()
 
 def test_dispatch_tool_create_booking_tracks_bookings_created():
     fixed_day = _fixed_local(hour=11)
+    booking_date = (fixed_day + timedelta(days=7)).strftime("%Y-%m-%d")
     user = "whatsapp:+60112223333"
+    # Booking wizard state is scoped per clinic; dispatch_tool reads it with
+    # the clinic's id, so it must be written with the same id.
     update_booking_state(
         user,
+        clinic_id=CLINIC_A["id"],
         service="scaling",
-        date="2026-04-15",
+        date=booking_date,
         time="11:00",
         availability_ok=True,
     )
@@ -215,7 +219,7 @@ def test_dispatch_tool_create_booking_tracks_bookings_created():
     ):
         result = dispatch_tool(
             "create_booking",
-            {"name": "Ali", "service": "scaling", "date": "2026-04-15", "time": "11:00"},
+            {"name": "Ali", "service": "scaling", "date": booking_date, "time": "11:00"},
             user=user,
             clinic=CLINIC_A,
         )
@@ -302,7 +306,8 @@ def test_dashboard_billing_shows_clinic_only_for_non_admin_staff():
     body = response.get_data(as_text=True)
     assert response.status_code == 200
     assert "Billing" in body
-    assert "Admin Billing Overview" not in body
+    assert "Admin Billing" not in body
+    assert "/dashboard/admin/billing" not in body
 
 
 def test_dashboard_admin_billing_allows_admin_staff_and_shows_nav_link():
@@ -317,7 +322,9 @@ def test_dashboard_admin_billing_allows_admin_staff_and_shows_nav_link():
         home_response = client.get("/dashboard/")
 
     assert billing_response.status_code == 200
-    assert "Admin Billing Overview" in billing_response.get_data(as_text=True)
+    billing_body = billing_response.get_data(as_text=True)
+    assert "Admin Billing" in billing_body
+    assert "/dashboard/admin/billing/1/update" in billing_body
     assert "/dashboard/admin/billing" in home_response.get_data(as_text=True)
 
 
@@ -361,11 +368,11 @@ def test_dashboard_admin_billing_update_fields():
         response = client.post(
             "/dashboard/admin/billing/1/update",
             data={
-                "plan_price": "199",
+                "price_override": "199",
                 "last_paid_date": "2026-04-01",
                 "billing_cycle_days": "45",
                 "billing_notes": "Updated by admin",
-                "billing_state": "paused",
+                "billing_paused": "1",
             },
         )
 
@@ -413,7 +420,7 @@ def test_dashboard_admin_billing_update_blocked_for_non_admin():
             sess["staff_is_admin"] = False
         response = client.post(
             "/dashboard/admin/billing/1/update",
-            data={"billing_state": "paid"},
+            data={"billing_paused": "1"},
         )
 
     assert response.status_code == 403

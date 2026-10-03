@@ -107,7 +107,7 @@ class TestMultiPatientBackToBackBooking:
                 # === BOOKING 1: Daniel at 10:00 ===
                 print("\n=== BOOKING 1: Daniel at 10:00 (whitening 90min) ===")
                 
-                update_booking_state(phone, availability_ok=True)
+                update_booking_state(phone, clinic_id=clinic["id"], availability_ok=True)
                 result1 = dispatch_tool(
                     "create_booking",
                     {
@@ -135,7 +135,7 @@ class TestMultiPatientBackToBackBooking:
                 # === BOOKING 2: Mary at 11:30 (edge-to-edge with Daniel) ===
                 print("\n=== BOOKING 2: Mary at 11:30 (whitening 90min) ===")
                 
-                update_booking_state(phone, availability_ok=True)
+                update_booking_state(phone, clinic_id=clinic["id"], availability_ok=True)
                 result2 = dispatch_tool(
                     "create_booking",
                     {
@@ -205,7 +205,7 @@ class TestMultiPatientBackToBackBooking:
                     "end": {"dateTime": "2026-01-15T11:30:00+08:00"},
                 }
                 
-                def list_events_side_effect(calendarId, timeMin, timeMax, singleEvents=True):
+                def list_events_side_effect(calendarId, timeMin, timeMax, singleEvents=True, orderBy=None):
                     window_start = datetime.fromisoformat(timeMin)
                     window_end = datetime.fromisoformat(timeMax)
                     evt_start = datetime.fromisoformat(existing_event["start"]["dateTime"])
@@ -260,6 +260,7 @@ class TestSinglePatientPolicy:
 
         update_booking_state(
             phone,
+            clinic_id=clinic["id"],
             service="braces consultation",
             date="2026-01-15",
             time="10:00",
@@ -287,6 +288,7 @@ class TestSinglePatientPolicy:
 
         update_booking_state(
             phone,
+            clinic_id=clinic["id"],
             service="scaling",
             date="2026-01-15",
             time="10:00",
@@ -308,7 +310,7 @@ class TestSinglePatientPolicy:
         assert result["ok"] is False
         # The message must tell the LLM to book patients separately.
         msg = result.get("message", "").lower()
-        assert "one patient at a time" in msg or "separately" in msg or "single patient" in msg
+        assert "one at a time" in msg
         # No booking should have been created.
         all_bookings = get_all_bookings(phone)
         assert len(all_bookings) == 0
@@ -357,7 +359,7 @@ class TestSinglePatientPolicy:
                 mock_get_cal.return_value.events.return_value = mock_events
 
                 # Book Daniel at 10:00 successfully.
-                update_booking_state(phone, availability_ok=True)
+                update_booking_state(phone, clinic_id=clinic["id"], availability_ok=True)
                 result1 = dispatch_tool(
                     "create_booking",
                     {
@@ -372,7 +374,7 @@ class TestSinglePatientPolicy:
                 assert result1["ok"] is True
 
                 # Attempt to book Mary at the same 10:00 slot — must fail.
-                update_booking_state(phone, availability_ok=True)
+                update_booking_state(phone, clinic_id=clinic["id"], availability_ok=True)
                 result2 = dispatch_tool(
                     "create_booking",
                     {
