@@ -3,6 +3,9 @@ from datetime import date, datetime, timedelta
 from unittest.mock import patch
 from zoneinfo import ZoneInfo
 
+import pytest
+from sqlalchemy import event
+
 from twilio.request_validator import RequestValidator
 
 # Must be set before importing app.
@@ -65,9 +68,24 @@ def _post_whatsapp(client, body, from_phone="+60199999999", to_phone=None):
     return client.post("/whatsapp", data=data, headers={"X-Twilio-Signature": signature})
 
 
+@pytest.fixture(autouse=True)
+def _message_clock():
+    # SQLAlchemy's default uses the real UTC clock; align new messages with the
+    # mocked application clock so daily conversation counts use the same day.
+    def set_timestamp(mapper, connection, message):
+        if message.created_at is None:
+            message.created_at = app_module.now_local().astimezone(
+                ZoneInfo("UTC")
+            ).replace(tzinfo=None)
+
+    event.listen(ConversationMessage, "before_insert", set_timestamp)
+    yield
+    event.remove(ConversationMessage, "before_insert", set_timestamp)
+
+
 def _fixed_local(hour=11):
-    now_kl = datetime.now(TZ_KL)
-    return now_kl.replace(hour=hour, minute=0, second=0, microsecond=0)
+    # A fixed Wednesday keeps working-hours assertions independent of Sundays.
+    return datetime(2026, 4, 8, hour, 0, tzinfo=TZ_KL)
 
 
 def _get_metric(clinic_id, metric_date):
