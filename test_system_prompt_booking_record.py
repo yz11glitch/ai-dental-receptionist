@@ -1,8 +1,10 @@
 """
-Verification test for BUG #15: Multi-Patient Booking Response Mismatch
+System prompt: existing booking records.
 
-This test demonstrates that the fix correctly shows ALL bookings in the system prompt,
-preventing LLM confusion when multiple family members are booked.
+Regression tests for a multi-patient booking response mismatch: after a parent
+books two family members, the system prompt must show the clinic-scoped
+existing booking record (not a phantom "FAMILY BOOKINGS" section), so the LLM
+does not contradict what was actually booked.
 """
 
 import sys
@@ -85,19 +87,3 @@ def test_system_prompt_single_booking_simple_format():
     # Must not contain phantom family bookings label.
     assert "FAMILY BOOKINGS (total:" not in prompt
 
-
-if __name__ == "__main__":
-    import os
-    os.environ["OPENAI_API_KEY"] = "dummy"
-    
-    print("=" * 70)
-    print("BUG #15 VERIFICATION TEST")
-    print("=" * 70)
-    
-    test_system_prompt_shows_all_family_bookings()
-    print()
-    test_system_prompt_single_booking_simple_format()
-    
-    print("\n" + "=" * 70)
-    print("✅ ALL VERIFICATION TESTS PASSED")
-    print("=" * 70)
