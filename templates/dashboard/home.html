@@ -1,0 +1,223 @@
+{% extends "dashboard/base.html" %}
+
+{% block styles %}
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 12px;
+}
+.stat-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 18px 20px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+.stat-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+  margin-bottom: 10px;
+}
+.stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--color-text);
+}
+.stat-value.danger  { color: var(--color-danger); }
+.stat-value.success { color: var(--color-success); }
+.stat-link {
+  display: block;
+  margin-top: 14px;
+  font-size: 12px;
+  color: var(--color-accent);
+  text-decoration: none;
+}
+.stat-link:hover { text-decoration: underline; }
+.mini-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+  margin-bottom: 0;
+}
+.mini-metric-item {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: var(--color-bg);
+}
+.mini-metric-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  letter-spacing: 0.05em;
+}
+.mini-metric-value {
+  margin-top: 6px;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+.subscription-compact {
+  padding: 14px 16px;
+}
+.subscription-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+.sub-item {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-bg);
+  padding: 10px 12px;
+}
+.sub-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+}
+.sub-value {
+  margin-top: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+.badge-status {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+.badge-status.paid { background: #D1FAE5; color: #065F46; }
+.badge-status.due { background: #FEF3C7; color: #92400E; }
+.badge-status.overdue,
+.badge-status.unpaid { background: #FEE2E2; color: #991B1B; }
+.badge-status.paused { background: #F1F5F9; color: #475569; }
+
+@media (max-width: 768px) {
+  .mini-metric-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .stat-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .stat-card {
+    padding: 16px 18px;
+  }
+  .stat-value {
+    font-size: 32px;
+  }
+  .subscription-grid { grid-template-columns: 1fr 1fr; }
+}
+{% endblock %}
+
+{% block page_title %}Overview{% endblock %}
+
+{% block content %}
+<h1>Overview</h1>
+
+<div class="card" style="margin-bottom: 14px;">
+  <h2 style="margin-bottom: 10px;">Metrics today</h2>
+  {% set m = metric_today %}
+  <div class="mini-metric-grid">
+    <div class="mini-metric-item">
+      <div class="mini-metric-label">Patients Assisted</div>
+      <div class="mini-metric-value">{{ m.conversations_handled if m else 0 }}</div>
+    </div>
+    <div class="mini-metric-item">
+      <div class="mini-metric-label">Messages Automated</div>
+      <div class="mini-metric-value">{{ m.messages_handled if m else 0 }}</div>
+    </div>
+    <div class="mini-metric-item">
+      <div class="mini-metric-label">Appointments Booked</div>
+      <div class="mini-metric-value">{{ m.bookings_created if m else 0 }}</div>
+    </div>
+    <div class="mini-metric-item">
+      <div class="mini-metric-label">After-Hours Enquiries</div>
+      <div class="mini-metric-value">{{ m.after_hours_messages if m else 0 }}</div>
+    </div>
+    <div class="mini-metric-item">
+      <div class="mini-metric-label">Human Takeovers</div>
+      <div class="mini-metric-value">{{ m.human_escalations if m else 0 }}</div>
+    </div>
+  </div>
+</div>
+
+
+{% if billing and billing.plan_price is not none %}
+<div class="card subscription-compact" style="margin-bottom: 14px;">
+  <h2 style="margin-bottom: 10px;">Subscription</h2>
+  {% set bs = billing.billing_status %}
+  <div class="subscription-grid">
+    <div class="sub-item">
+      <div class="sub-label">Plan</div>
+      <div class="sub-value">
+        {% if billing.billing_plan == 'founding' %}Founding Plan
+        {% elif billing.billing_plan == 'standard' %}Standard Plan
+        {% else %}—{% endif %}
+      </div>
+    </div>
+    <div class="sub-item">
+      <div class="sub-label">Monthly Price</div>
+      <div class="sub-value">RM{{ '%.0f' % billing.plan_price }}/mo</div>
+    </div>
+    <div class="sub-item">
+      <div class="sub-label">Status</div>
+      {% if bs in ('paid', 'due', 'overdue', 'unpaid', 'paused') %}
+        <span class="badge-status {{ bs }}">{{ bs | upper }}</span>
+      {% else %}
+        <span class="badge-status paused">{{ bs | upper }}</span>
+      {% endif %}
+    </div>
+    <div class="sub-item">
+      <div class="sub-label">Next Due</div>
+      <div class="sub-value">{{ billing.next_due_date.strftime('%d %b %Y') if billing.next_due_date else '—' }}</div>
+    </div>
+    <div class="sub-item">
+      <div class="sub-label">Amount Due</div>
+      {% if billing.amount_due %}
+      <div class="sub-value">RM{{ '%.0f' % billing.amount_due }}</div>
+      {% else %}
+      <div class="sub-value">RM0</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endif %}
+<div class="stat-grid">
+
+  <div class="stat-card">
+    <div class="stat-label">Bookings This Month</div>
+    <div class="stat-value">{{ bookings_this_month }}</div>
+    <a href="/dashboard/bookings" class="stat-link">View all bookings &rarr;</a>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-label">Open Flags</div>
+    <div class="stat-value {% if open_flags > 0 %}danger{% else %}success{% endif %}">
+      {{ open_flags }}
+    </div>
+    <a href="/dashboard/attention" class="stat-link">View flags &rarr;</a>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-label">Total Conversations</div>
+    <div class="stat-value">{{ total_conversations }}</div>
+    <a href="/dashboard/conversations" class="stat-link">View conversations &rarr;</a>
+  </div>
+
+</div>
+
+{% endblock %}

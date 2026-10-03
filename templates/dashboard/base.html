@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Atria AI — Dashboard</title>
+  <style>
+    /* ── Design tokens ────────────────────────────────────────── */
+    :root {
+      --color-accent:       #3B82F6;
+      --color-accent-dark:  #2563EB;
+      --color-accent-light: #EFF6FF;
+      --color-bg:           #F8FAFC;
+      --color-surface:      #FFFFFF;
+      --color-border:       #E2E8F0;
+      --color-text:         #1E293B;
+      --color-text-muted:   #64748B;
+      --color-text-faint:   #94A3B8;
+      --color-success:      #10B981;
+      --color-danger:       #EF4444;
+      --color-warning:      #F59E0B;
+      --color-info:         #3B82F6;
+      --sidebar-bg:         #0F172A;
+      --sidebar-border:     #1E293B;
+    }
+
+    /* ── Reset & base ─────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--color-text);
+      background: var(--color-bg);
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* ── Sidebar ──────────────────────────────────────────────── */
+    .sidebar {
+      width: 220px;
+      min-height: 100vh;
+      background: var(--sidebar-bg);
+      color: var(--color-text-faint);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      position: fixed;
+      top: 0; left: 0; bottom: 0;
+    }
+    .sidebar-brand {
+      padding: 22px 20px 18px;
+      border-bottom: 1px solid var(--sidebar-border);
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+    /* Brand as clickable link — desktop sidebar */
+    a.brand-link {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      text-decoration: none;
+      color: #FFFFFF;
+      transition: opacity 0.12s;
+    }
+    a.brand-link:hover {
+      opacity: 0.85;
+      text-decoration: none;
+    }
+    .sidebar-brand-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 2px;
+      background: var(--color-accent);
+      flex-shrink: 0;
+    }
+    .sidebar-brand-name {
+      font-size: 15px;
+      font-weight: 700;
+      color: #FFFFFF;
+      letter-spacing: -0.01em;
+    }
+    .sidebar-nav {
+      flex: 1;
+      padding: 10px 0;
+    }
+    .sidebar-nav a {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 9px 20px;
+      color: var(--color-text-faint);
+      text-decoration: none;
+      font-size: 13px;
+      border-left: 3px solid transparent;
+      transition: color 0.12s, background 0.12s;
+    }
+    .sidebar-nav a:hover {
+      color: #FFFFFF;
+      background: rgba(255,255,255,0.05);
+      text-decoration: none;
+    }
+    .sidebar-nav a.active {
+      color: #FFFFFF;
+      background: var(--sidebar-border);
+      border-left-color: var(--color-accent);
+    }
+    .sidebar-nav .nav-icon {
+      width: 16px;
+      height: 16px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0.75;
+      flex-shrink: 0;
+    }
+    .sidebar-nav .nav-icon svg {
+      width: 14px;
+      height: 14px;
+      stroke: currentColor;
+      stroke-width: 1.7;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .sidebar-nav a.active .nav-icon {
+      opacity: 1;
+    }
+    .sidebar-footer {
+      padding: 14px 20px;
+      border-top: 1px solid var(--sidebar-border);
+      font-size: 12px;
+    }
+    .sidebar-footer .staff-name {
+      display: block;
+      color: var(--color-text-faint);
+      margin-bottom: 10px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .sidebar-footer form { display: block; }
+    .sidebar-meta {
+      margin-top: 10px;
+      font-size: 11px;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .sidebar-meta a {
+      color: var(--color-text-faint);
+      text-decoration: none;
+    }
+    .sidebar-meta-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .sidebar-meta-link svg {
+      width: 12px;
+      height: 12px;
+      stroke: currentColor;
+      stroke-width: 1.7;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      opacity: 0.9;
+    }
+    .sidebar-meta a:hover {
+      color: #FFFFFF;
+      text-decoration: none;
+    }
+    .sidebar-meta .version-link {
+      opacity: 0.8;
+    }
+    .btn-logout {
+      display: block;
+      width: 100%;
+      padding: 6px 12px;
+      background: transparent;
+      border: 1px solid var(--sidebar-border);
+      border-radius: 7px;
+      color: var(--color-text-faint);
+      font-size: 12px;
+      cursor: pointer;
+      text-align: center;
+      font-family: inherit;
+      transition: background 0.12s, color 0.12s, border-color 0.12s;
+    }
+    .btn-logout:hover {
+      background: rgba(255,255,255,0.06);
+      color: #FFFFFF;
+      border-color: #334155;
+    }
+
+    /* ── Main layout ──────────────────────────────────────────── */
+    .main-wrapper {
+      margin-left: 220px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    .topbar {
+      height: 50px;
+      background: var(--color-surface);
+      border-bottom: 1px solid var(--color-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 28px;
+      flex-shrink: 0;
+    }
+    .topbar-left {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--color-text);
+      letter-spacing: -0.01em;
+    }
+    /* Mobile topbar brand link */
+    .topbar-brand-link {
+      display: none;
+      align-items: center;
+      gap: 7px;
+      text-decoration: none;
+      color: var(--color-text);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      transition: opacity 0.12s;
+    }
+    .topbar-brand-link:hover {
+      opacity: 0.75;
+      text-decoration: none;
+    }
+    .topbar-brand-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 2px;
+      background: var(--color-accent);
+      flex-shrink: 0;
+    }
+    .topbar-page-name {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--color-text-muted);
+    }
+    .topbar-right {
+      font-size: 12px;
+      color: var(--color-text-muted);
+    }
+    .page-content {
+      padding: 28px 32px;
+      max-width: 1120px;
+      width: 100%;
+    }
+
+    /* ── Typography ───────────────────────────────────────────── */
+    h1 {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--color-text);
+      margin-bottom: 22px;
+      letter-spacing: -0.01em;
+    }
+    h2 {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 12px;
+    }
+
+    /* ── Links ────────────────────────────────────────────────── */
+    a { color: var(--color-accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Cards ────────────────────────────────────────────────── */
+    .card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 10px;
+      padding: 22px 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+
+    /* ── Tables ───────────────────────────────────────────────── */
+    table { width: 100%; border-collapse: collapse; }
+    th {
+      text-align: left;
+      padding: 10px 16px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--color-text-muted);
+      border-bottom: 1px solid var(--color-border);
+      background: var(--color-bg);
+    }
+    td {
+      padding: 12px 16px;
+      border-bottom: 1px solid #F1F5F9;
+      vertical-align: middle;
+      color: var(--color-text);
+    }
+    tr:last-child td { border-bottom: none; }
+    tbody tr:hover td { background: var(--color-bg); }
+
+    /* ── Badges ───────────────────────────────────────────────── */
+    .badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 500;
+      line-height: 1.6;
+    }
+    .badge-green  { background: #D1FAE5; color: #065F46; }
+    .badge-red    { background: #FEE2E2; color: #991B1B; }
+    .badge-orange { background: #FEF3C7; color: #92400E; }
+    .badge-yellow { background: #FEF9C3; color: #713F12; }
+    .badge-blue   { background: #DBEAFE; color: #1D4ED8; }
+    .badge-gray   { background: #F1F5F9; color: #475569; }
+
+    /* ── Pagination ───────────────────────────────────────────── */
+    .pagination {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      padding: 14px 16px;
+    }
+    .pagination a {
+      padding: 5px 12px;
+      border: 1px solid var(--color-border);
+      border-radius: 7px;
+      font-size: 12px;
+      color: var(--color-text);
+      background: var(--color-surface);
+      text-decoration: none;
+      transition: background 0.12s, border-color 0.12s;
+    }
+    .pagination a:hover {
+      background: var(--color-bg);
+      border-color: #CBD5E1;
+      text-decoration: none;
+    }
+    .pagination .current {
+      padding: 5px 12px;
+      border: 1px solid var(--color-accent);
+      border-radius: 7px;
+      font-size: 12px;
+      background: var(--color-accent);
+      color: #FFFFFF;
+      font-weight: 500;
+    }
+
+    /* ── Empty state ──────────────────────────────────────────── */
+    .empty-state {
+      text-align: center;
+      padding: 48px 24px;
+      color: var(--color-text-muted);
+      font-size: 13px;
+    }
+    .empty-state .empty-icon {
+      font-size: 26px;
+      margin-bottom: 10px;
+      display: block;
+    }
+    .empty-state p {
+      font-size: 13px;
+      color: var(--color-text-muted);
+      margin-top: 4px;
+    }
+
+    /* ── Buttons ──────────────────────────────────────────────── */
+    .btn-primary {
+      display: inline-block;
+      padding: 8px 16px;
+      border-radius: 7px;
+      font-size: 13px;
+      font-weight: 500;
+      background: var(--color-accent);
+      color: #FFFFFF;
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+      text-decoration: none;
+      transition: background 0.12s;
+    }
+    .btn-primary:hover {
+      background: var(--color-accent-dark);
+      text-decoration: none;
+      color: #FFFFFF;
+    }
+    .btn-small {
+      display: inline-block;
+      padding: 5px 12px;
+      border-radius: 7px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      border: 1px solid var(--color-border);
+      background: var(--color-surface);
+      color: var(--color-text);
+      font-family: inherit;
+      transition: background 0.12s, border-color 0.12s;
+      text-decoration: none;
+    }
+    .btn-small:hover {
+      background: var(--color-bg);
+      border-color: #CBD5E1;
+      text-decoration: none;
+    }
+    .btn-resolve {
+      border-color: #6EE7B7;
+      background: #ECFDF5;
+      color: #065F46;
+    }
+    .btn-resolve:hover {
+      background: #D1FAE5;
+      border-color: #34D399;
+    }
+
+    /* ── Calendar health banner ───────────────────────────────── */
+    .alert-banner {
+      padding: 10px 28px;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .alert-banner-warning {
+      background: #FEF9C3;
+      border-bottom: 1px solid #F59E0B;
+      color: #92400E;
+    }
+    .alert-banner-detail {
+      color: #78350F;
+      font-size: 12px;
+      margin-left: 4px;
+    }
+
+    /* ── Search bar ──────────────────────────────────────────── */
+    .search-bar { margin-bottom: 20px; }
+    .search-form { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .search-input { flex: 1; min-width: 180px; padding: 8px 12px; border: 1px solid var(--color-border); border-radius: 7px; font-size: 14px; background: var(--color-surface); color: var(--color-text); font-family: inherit; }
+    .search-input:focus { outline: none; border-color: var(--color-accent); box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+    .btn-search { padding: 8px 16px; background: var(--color-accent); color: white; border: none; border-radius: 7px; cursor: pointer; font-size: 14px; font-family: inherit; transition: background 0.12s; }
+    .btn-search:hover { background: var(--color-accent-dark); }
+    .clear-search { font-size: 13px; color: var(--color-text-muted); text-decoration: none; white-space: nowrap; }
+    .clear-search:hover { color: var(--color-danger); text-decoration: none; }
+    select.search-select { padding: 8px 12px; border: 1px solid var(--color-border); border-radius: 7px; font-size: 14px; background: var(--color-surface); color: var(--color-text); font-family: inherit; cursor: pointer; }
+    select.search-select:focus { outline: none; border-color: var(--color-accent); box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+    @media (max-width: 768px) {
+      .search-input { width: 100%; }
+      .search-form { gap: 6px; }
+    }
+
+    {% block styles %}{% endblock %}
+
+    /* ── Bottom tab bar — hidden on desktop ───────────────────── */
+    .bottom-nav {
+      display: none;
+    }
+
+    /* ── Mobile responsive ────────────────────────────────────── */
+    @media (max-width: 768px) {
+      /* Hide desktop sidebar */
+      .sidebar { display: none; }
+
+      /* Main wrapper: remove sidebar offset, add bottom tab bar clearance */
+      .main-wrapper {
+        margin-left: 0;
+        padding-bottom: 58px;
+      }
+
+      /* Topbar: sticky on mobile, tighten padding, show brand link + page name */
+      .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        padding: 0 16px;
+      }
+
+      /* Hide the desktop "Atria AI" plain text on mobile */
+      .topbar-left { display: none; }
+
+      /* Show the clickable brand link on mobile */
+      .topbar-brand-link { display: flex; }
+
+      /* Hide staff name on mobile — space is tight */
+      .topbar-right { display: none; }
+
+      /* Page content: tighter horizontal padding */
+      .page-content {
+        padding: 20px 16px;
+      }
+
+      /* Bottom tab bar: visible on mobile */
+      .bottom-nav {
+        display: flex;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 58px;
+        background: var(--color-surface);
+        border-top: 1px solid var(--color-border);
+        z-index: 200;
+        align-items: stretch;
+        box-shadow: 0 -1px 6px rgba(0,0,0,0.07);
+      }
+
+      /* Responsive table pattern — hide header, stack rows as cards */
+      .responsive-table thead { display: none; }
+      .responsive-table tr {
+        display: block;
+        border: 1px solid var(--color-border);
+        border-radius: 10px;
+        margin-bottom: 12px;
+        padding: 12px 14px;
+        background: var(--color-surface);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      }
+      .responsive-table tbody tr:hover td { background: transparent; }
+      .responsive-table tr:last-child { margin-bottom: 0; }
+      .responsive-table td {
+        display: block;
+        padding: 4px 0;
+        border: none;
+        font-size: 13px;
+      }
+      .responsive-table td::before {
+        content: attr(data-label);
+        font-size: 10px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--color-text-muted);
+        display: block;
+        margin-bottom: 1px;
+      }
+      /* Cells that need no label (action buttons) */
+      .responsive-table td[data-label=""] { margin-top: 8px; }
+      .responsive-table td[data-label=""] .btn-small,
+      .responsive-table td[data-label=""] .btn-primary {
+        display: block;
+        width: 100%;
+        text-align: center;
+        box-sizing: border-box;
+      }
+      /* Wrap responsive tables in a padded container on mobile */
+      .responsive-table-wrap { padding: 12px; }
+
+      /* Pagination wraps more neatly */
+      .pagination { flex-wrap: wrap; padding: 12px; }
+    }
+
+    /* ── Tab item styles (defined outside media query so transitions work) ── */
+    .tab-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      text-decoration: none;
+      color: var(--color-text-faint);
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.01em;
+      transition: color 0.12s;
+      -webkit-tap-highlight-color: transparent;
+      position: relative;
+    }
+    .tab-item:hover { text-decoration: none; color: var(--color-text-muted); }
+    .tab-item.active { color: var(--color-accent); }
+    .tab-icon {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+    }
+    .tab-icon svg {
+      width: 22px;
+      height: 22px;
+    }
+    /* Red badge dot on Alerts tab */
+    .tab-badge {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 8px;
+      height: 8px;
+      background: #EF4444;
+      border-radius: 50%;
+      border: 1.5px solid var(--color-surface);
+    }
+    .tab-label {
+      line-height: 1;
+    }
+
+    /* ── Floating feedback ─────────────────────────────────────── */
+    .feedback-fab {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      z-index: 350;
+      border: none;
+      border-radius: 999px;
+      background: var(--color-accent);
+      color: #FFFFFF;
+      padding: 10px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: inherit;
+      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.2);
+      cursor: pointer;
+      transition: background 0.12s;
+    }
+    .feedback-fab:hover {
+      background: var(--color-accent-dark);
+    }
+    .feedback-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.48);
+      z-index: 360;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .feedback-overlay.open {
+      display: flex;
+    }
+    .feedback-modal {
+      width: 100%;
+      max-width: 460px;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 12px;
+      box-shadow: 0 16px 32px rgba(15, 23, 42, 0.22);
+      padding: 18px;
+    }
+    .feedback-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: var(--color-text);
+    }
+    .feedback-field {
+      margin-bottom: 12px;
+    }
+    .feedback-label {
+      display: block;
+      font-size: 12px;
+      color: var(--color-text-muted);
+      margin-bottom: 6px;
+    }
+    .feedback-select,
+    .feedback-textarea {
+      width: 100%;
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 14px;
+      color: var(--color-text);
+      background: var(--color-surface);
+      padding: 9px 11px;
+    }
+    .feedback-select:focus,
+    .feedback-textarea:focus {
+      outline: none;
+      border-color: var(--color-accent);
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+    }
+    .feedback-textarea {
+      min-height: 120px;
+      resize: vertical;
+    }
+    .feedback-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 6px;
+    }
+    .feedback-status {
+      margin-top: 10px;
+      font-size: 12px;
+      color: var(--color-text-muted);
+      min-height: 18px;
+    }
+    .feedback-status.error {
+      color: var(--color-danger);
+    }
+    .feedback-status.success {
+      color: #047857;
+    }
+    @media (max-width: 768px) {
+      .feedback-fab {
+        right: 12px;
+        bottom: 72px;
+      }
+      .feedback-modal {
+        padding: 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar (desktop only) -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <a href="/dashboard/" class="brand-link">
+        <span class="sidebar-brand-dot"></span>
+        <span class="sidebar-brand-name">Atria AI</span>
+      </a>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="/dashboard/"
+         class="{{ 'active' if request.path == '/dashboard/' else '' }}">
+        <span class="nav-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M3 9.75L12 3l9 6.75V21a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.75z"/><path d="M9 22V12h6v10"/></svg>
+        </span> Home
+      </a>
+      <a href="/dashboard/conversations"
+         class="{{ 'active' if '/conversations' in request.path else '' }}">
+        <span class="nav-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </span> Conversations
+      </a>
+      <a href="/dashboard/customers"
+         class="{{ 'active' if '/customers' in request.path else '' }}">
+        <span class="nav-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </span> Customers
+      </a>
+      <a href="/dashboard/attention"
+         class="{{ 'active' if '/attention' in request.path else '' }}">
+        <span class="nav-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </span> Needs Attention
+      </a>
+      <a href="/dashboard/bookings"
+         class="{{ 'active' if '/bookings' in request.path else '' }}">
+        <span class="nav-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        </span> Bookings
+      </a>
+      <a href="/dashboard/settings"
+         class="{{ 'active' if '/settings' in request.path else '' }}">
+        <span class="nav-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </span> Settings
+      </a>
+      <a href="{{ '/dashboard/admin/billing' if session.get('staff_is_admin') else '/dashboard/billing' }}"
+         class="{{ 'active' if '/billing' in request.path }}">
+        <span class="nav-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+        </span> {{ 'Admin Billing' if session.get('staff_is_admin') else 'Billing' }}
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <span class="staff-name">{{ session.staff_name }}</span>
+      <form action="/dashboard/logout" method="post">
+        <button type="submit" class="btn-logout">Sign out</button>
+      </form>
+      <div class="sidebar-meta">
+        <a href="/dashboard/updates" class="sidebar-meta-link {{ 'active' if '/updates' in request.path else '' }}">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16l4-3h10a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          Updates
+        </a>
+        <a href="/dashboard/updates" class="version-link">v1.0</a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="main-wrapper">
+    <header class="topbar">
+      <!-- Desktop: plain brand text (sidebar already shows the nav) -->
+      <span class="topbar-left">Atria AI</span>
+      <!-- Mobile: clickable brand (left) + current page name (right) -->
+      <a href="/dashboard/" class="topbar-brand-link" aria-label="Home">
+        <span class="topbar-brand-dot"></span>
+        Atria AI
+      </a>
+      <span class="topbar-page-name">{% block page_title %}Dashboard{% endblock %}</span>
+      <!-- Desktop: staff name -->
+      <span class="topbar-right">{{ session.staff_name }}</span>
+    </header>
+    {% if not g.get('calendar_healthy', True) %}
+    <div class="alert-banner alert-banner-warning" role="alert">
+      <strong>Google Calendar disconnected — bookings may fail.</strong>
+      <span class="alert-banner-detail">{{ g.calendar_error or 'Check Google OAuth connection.' }}</span>
+    </div>
+    {% endif %}
+    <main class="page-content">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
+  <button type="button" class="feedback-fab" id="feedback-open-btn">Feedback</button>
+  <div class="feedback-overlay" id="feedback-overlay" aria-hidden="true">
+    <div class="feedback-modal" role="dialog" aria-modal="true" aria-labelledby="feedback-title">
+      <h3 class="feedback-title" id="feedback-title">Share feedback</h3>
+      <form id="feedback-form">
+        <div class="feedback-field">
+          <label class="feedback-label" for="feedback-category">Type</label>
+          <select id="feedback-category" class="feedback-select" name="category">
+            <option value="bug">Bug</option>
+            <option value="feature">Feature</option>
+            <option value="general">General</option>
+          </select>
+        </div>
+        <div class="feedback-field">
+          <label class="feedback-label" for="feedback-message">Message</label>
+          <textarea
+            id="feedback-message"
+            class="feedback-textarea"
+            name="message"
+            maxlength="2000"
+            placeholder="What should we improve?"
+            required
+          ></textarea>
+        </div>
+        <div class="feedback-actions">
+          <button type="button" class="btn-small" id="feedback-cancel-btn">Cancel</button>
+          <button type="submit" class="btn-primary" id="feedback-submit-btn">Submit</button>
+        </div>
+        <div class="feedback-status" id="feedback-status"></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Bottom tab bar (mobile only) -->
+  <nav class="bottom-nav" aria-label="Main navigation">
+
+    <!-- Home -->
+    <a href="/dashboard/"
+       class="tab-item {{ 'active' if request.path == '/dashboard/' else '' }}">
+      <span class="tab-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M3 9.75L12 3l9 6.75V21a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.75z"/>
+          <path d="M9 22V12h6v10"/>
+        </svg>
+      </span>
+      <span class="tab-label">Home</span>
+    </a>
+
+    <!-- Chats -->
+    <a href="/dashboard/conversations"
+       class="tab-item {{ 'active' if '/conversations' in request.path else '' }}">
+      <span class="tab-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </svg>
+      </span>
+      <span class="tab-label">Chats</span>
+    </a>
+
+    <!-- Alerts (with red badge dot when open flags exist) -->
+    <a href="/dashboard/attention"
+       class="tab-item {{ 'active' if '/attention' in request.path else '' }}">
+      <span class="tab-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+          <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+        </svg>
+        <span class="tab-badge"
+          {% if g.get('open_flags_count', 0) == 0 %}style="display:none"{% endif %}
+          aria-label="Unresolved alerts"></span>
+      </span>
+      <span class="tab-label">Alerts</span>
+    </a>
+
+    <!-- Bookings -->
+    <a href="/dashboard/bookings"
+       class="tab-item {{ 'active' if '/bookings' in request.path else '' }}">
+      <span class="tab-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+          <line x1="16" y1="2" x2="16" y2="6"/>
+          <line x1="8" y1="2" x2="8" y2="6"/>
+          <line x1="3" y1="10" x2="21" y2="10"/>
+        </svg>
+      </span>
+      <span class="tab-label">Bookings</span>
+    </a>
+
+    <!-- Customers -->
+    <a href="/dashboard/customers"
+       class="tab-item {{ 'active' if '/customers' in request.path else '' }}">
+      <span class="tab-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+          <circle cx="12" cy="7" r="4"/>
+        </svg>
+      </span>
+      <span class="tab-label">Customers</span>
+    </a>
+
+    <!-- Settings -->
+    <a href="/dashboard/settings"
+       class="tab-item {{ 'active' if '/settings' in request.path else '' }}">
+      <span class="tab-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </span>
+      <span class="tab-label">Settings</span>
+    </a>
+
+  </nav>
+
+  <script>
+    const si = document.getElementById('search-q');
+    if (si) si.addEventListener('change', () => si.closest('form').submit());
+
+    const feedbackOpenBtn = document.getElementById('feedback-open-btn');
+    const feedbackOverlay = document.getElementById('feedback-overlay');
+    const feedbackForm = document.getElementById('feedback-form');
+    const feedbackCancelBtn = document.getElementById('feedback-cancel-btn');
+    const feedbackSubmitBtn = document.getElementById('feedback-submit-btn');
+    const feedbackMessageEl = document.getElementById('feedback-message');
+    const feedbackStatus = document.getElementById('feedback-status');
+
+    function closeFeedbackModal() {
+      feedbackOverlay.classList.remove('open');
+      feedbackOverlay.setAttribute('aria-hidden', 'true');
+      feedbackStatus.textContent = '';
+      feedbackStatus.className = 'feedback-status';
+    }
+
+    feedbackOpenBtn.addEventListener('click', () => {
+      feedbackOverlay.classList.add('open');
+      feedbackOverlay.setAttribute('aria-hidden', 'false');
+      setTimeout(() => feedbackMessageEl.focus(), 0);
+    });
+
+    feedbackCancelBtn.addEventListener('click', closeFeedbackModal);
+
+    feedbackOverlay.addEventListener('click', (event) => {
+      if (event.target === feedbackOverlay) {
+        closeFeedbackModal();
+      }
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && feedbackOverlay.classList.contains('open')) {
+        closeFeedbackModal();
+      }
+    });
+
+    feedbackForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const category = document.getElementById('feedback-category').value;
+      const message = feedbackMessageEl.value.trim();
+      if (!message) {
+        feedbackStatus.textContent = 'Please enter feedback.';
+        feedbackStatus.className = 'feedback-status error';
+        return;
+      }
+
+      feedbackSubmitBtn.disabled = true;
+      feedbackStatus.textContent = 'Submitting...';
+      feedbackStatus.className = 'feedback-status';
+
+      try {
+        const response = await fetch('/feedback', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ category, message }),
+        });
+        const result = await response.json();
+
+        if (!response.ok || !result.ok) {
+          feedbackStatus.textContent = result.error || 'Unable to submit feedback.';
+          feedbackStatus.className = 'feedback-status error';
+          feedbackSubmitBtn.disabled = false;
+          return;
+        }
+
+        feedbackStatus.textContent = 'Thanks! Feedback submitted.';
+        feedbackStatus.className = 'feedback-status success';
+        feedbackForm.reset();
+        setTimeout(() => {
+          feedbackSubmitBtn.disabled = false;
+          closeFeedbackModal();
+        }, 700);
+      } catch (error) {
+        feedbackStatus.textContent = 'Unable to submit feedback.';
+        feedbackStatus.className = 'feedback-status error';
+        feedbackSubmitBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

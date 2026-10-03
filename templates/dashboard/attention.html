@@ -1,0 +1,102 @@
+{% extends "dashboard/base.html" %}
+
+{% block styles %}
+@media (max-width: 768px) {
+  /* On mobile, group View + Resolve side by side */
+  .attention-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .attention-actions .btn-small,
+  .attention-actions form { flex: 1; }
+  .attention-actions .btn-small,
+  .attention-actions button {
+    display: block;
+    width: 100%;
+    text-align: center;
+    box-sizing: border-box;
+  }
+}
+{% endblock %}
+
+{% block page_title %}Alerts{% endblock %}
+
+{% block content %}
+<h1>Needs Attention</h1>
+
+<div class="search-bar">
+  <form method="GET" class="search-form">
+    <input type="text" id="search-q" name="q" value="{{ q }}" placeholder="Search by phone..." class="search-input">
+    <select name="status" class="search-select" onchange="this.closest('form').submit()">
+      <option value="unresolved" {% if status == "unresolved" %}selected{% endif %}>Unresolved</option>
+      <option value="resolved" {% if status == "resolved" %}selected{% endif %}>Resolved</option>
+      <option value="all" {% if status == "all" %}selected{% endif %}>All</option>
+    </select>
+    <button type="submit" class="btn-search">Search</button>
+    {% if q or status != "unresolved" %}<a href="{{ request.path }}" class="clear-search">Clear</a>{% endif %}
+  </form>
+</div>
+
+<div class="card" style="padding: 0; overflow: hidden;">
+  {% if flags %}
+    <div class="responsive-table-wrap" style="padding: 0;">
+    <table class="responsive-table">
+      <thead>
+        <tr>
+          <th style="padding-left: 20px;">Patient Phone</th>
+          <th>Flag Type</th>
+          <th>Flagged At</th>
+          <th style="padding-right: 20px; text-align: right;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for flag in flags %}
+        <tr>
+          <td data-label="Phone" style="font-family: 'SFMono-Regular', 'Consolas', monospace; font-size: 12.5px; padding-left: 20px;">
+            {{ flag.phone }}
+          </td>
+          <td data-label="Flag Type">
+            {% if flag.flag_type == 'human_requested' %}
+              <span class="badge badge-orange">{{ flag.flag_type }}</span>
+            {% elif flag.flag_type == 'booking_failed' %}
+              <span class="badge badge-red">{{ flag.flag_type }}</span>
+            {% elif flag.flag_type == 'ai_uncertain' %}
+              <span class="badge badge-yellow">{{ flag.flag_type }}</span>
+            {% elif flag.flag_type == 'same_day_booking' %}
+              <span class="badge badge-blue">same day booking</span>
+            {% else %}
+              <span class="badge badge-gray">{{ flag.flag_type }}</span>
+            {% endif %}
+          </td>
+          <td data-label="Flagged At" style="color: var(--color-text-muted); font-size: 12px;">
+            {{ flag.created_at.strftime("%d %b %Y, %H:%M") }}
+          </td>
+          <td data-label="" class="attention-actions" style="text-align: right; padding-right: 20px;">
+            <a href="/dashboard/conversations/{{ flag.phone | urlencode }}" class="btn-small">View thread &rarr;</a>
+            <form method="post" action="/dashboard/attention/{{ flag.id }}/resolve"
+                  style="display: inline;"
+                  onsubmit="return confirm('Mark this flag as resolved?');">
+              <button type="submit" class="btn-small btn-resolve">Resolve</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  {% elif q or status != "unresolved" %}
+    <div class="empty-state">
+      <p>No results{% if q %} for <strong>{{ q }}</strong>{% endif %}.</p>
+      <a href="{{ request.path }}">Clear search</a>
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <span class="empty-icon">&#10003;</span>
+      <strong>All caught up</strong>
+      <p>No open flags requiring attention.</p>
+    </div>
+  {% endif %}
+</div>
+
+{% endblock %}

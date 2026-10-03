@@ -1,0 +1,227 @@
+{% extends "dashboard/base.html" %}
+
+{% block styles %}
+.back-link {
+  display: inline-block;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  margin-bottom: 18px;
+  text-decoration: none;
+}
+.back-link:hover {
+  color: var(--color-text);
+  text-decoration: none;
+}
+.convo-phone {
+  font-family: 'SFMono-Regular', 'Consolas', monospace;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--color-text);
+  margin-bottom: 20px;
+}
+.flag-banner {
+  background: #FFFBEB;
+  border: 1px solid #FDE68A;
+  border-radius: 8px;
+  padding: 11px 16px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.flag-banner-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #92400E;
+}
+.section-header {
+  padding: 13px 20px;
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.section-header-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+/* ── Chat thread ──────────────────────────── */
+.chat-thread {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background: var(--color-bg);
+}
+.bubble-row {
+  display: flex;
+}
+.bubble-row.patient { justify-content: flex-start; }
+.bubble-row.ai      { justify-content: flex-end; }
+.bubble-wrap {
+  max-width: min(72%, 420px);
+}
+.bubble-sender {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  margin-bottom: 4px;
+  padding: 0 2px;
+}
+.bubble-row.patient .bubble-sender { color: var(--color-text-faint); }
+.bubble-row.ai      .bubble-sender { color: #93C5FD; text-align: right; }
+.bubble-body {
+  padding: 10px 14px;
+  white-space: pre-wrap;
+  line-height: 1.55;
+  font-size: 13.5px;
+  word-break: break-word;
+}
+.bubble-row.patient .bubble-body {
+  background: #F1F5F9;
+  color: var(--color-text);
+  border-radius: 4px 16px 16px 16px;
+}
+.bubble-row.ai .bubble-body {
+  background: var(--color-accent);
+  color: #FFFFFF;
+  border-radius: 16px 4px 16px 16px;
+}
+.bubble-time {
+  font-size: 11px;
+  color: var(--color-text-faint);
+  margin-top: 4px;
+  padding: 0 2px;
+}
+.bubble-row.ai .bubble-time { text-align: right; }
+
+@media (max-width: 768px) {
+  .convo-phone {
+    font-size: 14px;
+    margin-bottom: 14px;
+    word-break: break-all;
+  }
+  .bubble-wrap {
+    max-width: min(82%, 300px);
+  }
+  .bubble-body {
+    font-size: 13px;
+  }
+  .chat-thread {
+    padding: 14px;
+    gap: 10px;
+  }
+  .section-header {
+    padding: 11px 14px;
+  }
+}
+{% endblock %}
+
+{% block page_title %}Conversation{% endblock %}
+
+{% block content %}
+
+<a href="/dashboard/conversations" class="back-link">&larr; Back to conversations</a>
+
+<div class="convo-phone">{{ user_phone }}</div>
+
+{% if open_flags %}
+<div class="flag-banner">
+  <span class="flag-banner-label">{{ open_flags | length }} open flag{% if open_flags | length != 1 %}s{% endif %}</span>
+  {% for f in open_flags %}
+    {% if f.flag_type == 'human_requested' %}
+      <span class="badge badge-orange">{{ f.flag_type }}</span>
+    {% elif f.flag_type == 'booking_failed' %}
+      <span class="badge badge-red">{{ f.flag_type }}</span>
+    {% else %}
+      <span class="badge badge-yellow">{{ f.flag_type }}</span>
+    {% endif %}
+  {% endfor %}
+  <a href="/dashboard/attention" style="font-size: 12px; margin-left: 4px; color: var(--color-text-muted);">Manage &rarr;</a>
+</div>
+{% endif %}
+
+{% if bookings %}
+<div class="card" style="margin-bottom: 20px; padding: 0; overflow: hidden;">
+  <div class="section-header">
+    <span class="section-header-title">Bookings</span>
+  </div>
+  <div class="responsive-table-wrap" style="padding: 0;">
+  <table class="responsive-table">
+    <thead>
+      <tr>
+        <th style="padding-left: 20px;">Patient</th>
+        <th>Service</th>
+        <th>Date</th>
+        <th>Time</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for b in bookings %}
+      <tr>
+        <td data-label="Patient" style="padding-left: 20px; font-weight: 500;">{{ b.name }}</td>
+        <td data-label="Service">{{ b.service }}</td>
+        <td data-label="Date">{{ b.date }}</td>
+        <td data-label="Time">{{ b.time }}</td>
+        <td data-label="Status">
+          {% set s = b.status | lower %}
+          {% if s == "booked" or s == "pending" %}
+            <span class="badge badge-green">{{ b.status }}</span>
+          {% elif s == "cancelled" %}
+            <span class="badge badge-red">{{ b.status }}</span>
+          {% elif s == "rescheduled" %}
+            <span class="badge badge-blue">{{ b.status }}</span>
+          {% else %}
+            <span class="badge badge-orange">{{ b.status }}</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+{% endif %}
+
+<div class="card" style="padding: 0; overflow: hidden;">
+  <div class="section-header">
+    <span class="section-header-title">Message thread</span>
+    <span class="badge badge-gray">{{ messages | length }}</span>
+  </div>
+
+  {% if messages %}
+  <div class="chat-thread">
+    {% for msg in messages %}
+      {% if msg.role == "user" %}
+        <div class="bubble-row patient">
+          <div class="bubble-wrap">
+            <div class="bubble-sender">Patient</div>
+            <div class="bubble-body">{{ msg.content }}</div>
+            <div class="bubble-time">{{ msg.created_at.strftime("%d %b %Y, %H:%M") }}</div>
+          </div>
+        </div>
+      {% else %}
+        <div class="bubble-row ai">
+          <div class="bubble-wrap">
+            <div class="bubble-sender">Atria AI</div>
+            <div class="bubble-body">{{ msg.content }}</div>
+            <div class="bubble-time">{{ msg.created_at.strftime("%d %b %Y, %H:%M") }}</div>
+          </div>
+        </div>
+      {% endif %}
+    {% endfor %}
+  </div>
+  {% else %}
+    <div class="empty-state">
+      <span class="empty-icon">&#128172;</span>
+      <strong>No messages found</strong>
+    </div>
+  {% endif %}
+</div>
+
+{% endblock %}

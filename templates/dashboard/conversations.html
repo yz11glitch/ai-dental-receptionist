@@ -1,0 +1,102 @@
+{% extends "dashboard/base.html" %}
+
+{% block styles %}
+@media (max-width: 768px) {
+  /* First cell on desktop has extra left padding; zero it on mobile */
+  .responsive-table td[data-label="Phone"] {
+    font-family: 'SFMono-Regular', 'Consolas', monospace;
+    font-size: 12px;
+  }
+}
+{% endblock %}
+
+{% block page_title %}Conversations{% endblock %}
+
+{% block content %}
+<h1>Conversations</h1>
+
+<div class="search-bar">
+  <form method="GET" class="search-form">
+    <input type="text" id="search-q" name="q" value="{{ q }}" placeholder="Search by phone or name..." class="search-input">
+    <label style="display: flex; align-items: center; gap: 5px; font-size: 13px; color: var(--color-text-muted); white-space: nowrap; cursor: pointer;">
+      <input type="checkbox" name="attention" value="1" {% if attention_only %}checked{% endif %} onchange="this.closest('form').submit()">
+      Needs attention only
+    </label>
+    <button type="submit" class="btn-search">Search</button>
+    {% if q or attention_only %}<a href="{{ request.path }}" class="clear-search">Clear</a>{% endif %}
+  </form>
+</div>
+
+<div class="card" style="padding: 0; overflow: hidden;">
+  {% if conversations %}
+    <div class="responsive-table-wrap" style="padding: 0;">
+    <table class="responsive-table">
+      <thead>
+        <tr>
+          <th style="padding-left: 20px;">Phone</th>
+          <th>Patient</th>
+          <th>Last Message</th>
+          <th style="text-align: center;">Messages</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for conv in conversations %}
+        <tr>
+          <td data-label="Phone" style="font-family: 'SFMono-Regular', 'Consolas', monospace; font-size: 12.5px; padding-left: 20px;">
+            {{ conv.phone }}
+          </td>
+          <td data-label="Patient">
+            {% if conv.patient_name %}
+              <span style="font-weight: 600;">{{ conv.patient_name }}</span>
+            {% else %}
+              <span style="color: var(--color-text-faint); font-style: italic;">Unknown</span>
+            {% endif %}
+          </td>
+          <td data-label="Last Message" style="color: var(--color-text-muted); font-size: 12px;">
+            {% if conv.last_message_at %}
+              {{ conv.last_message_at.strftime("%d %b %Y, %H:%M") }}
+            {% else %}
+              <span style="color: var(--color-text-faint);">—</span>
+            {% endif %}
+          </td>
+          <td data-label="Messages" style="text-align: center;">
+            <span class="badge badge-gray">{{ conv.message_count }}</span>
+          </td>
+          <td data-label="" style="text-align: right; padding-right: 20px;">
+            <a href="/dashboard/conversations/{{ conv.phone | urlencode }}" class="btn-small">View &rarr;</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+
+    {% if total_pages > 1 %}
+    <div class="pagination" style="border-top: 1px solid #F1F5F9;">
+      {% set base_qs = "?" ~ ("q=" ~ q ~ "&" if q else "") ~ ("attention=1&" if attention_only else "") %}
+      {% if page > 1 %}
+        <a href="{{ base_qs }}page={{ page - 1 }}">&larr; Prev</a>
+      {% endif %}
+      <span class="current">{{ page }} / {{ total_pages }}</span>
+      {% if page < total_pages %}
+        <a href="{{ base_qs }}page={{ page + 1 }}">Next &rarr;</a>
+      {% endif %}
+    </div>
+    {% endif %}
+
+  {% elif q or attention_only %}
+    <div class="empty-state">
+      <p>No results for <strong>{{ q or "this filter" }}</strong>.</p>
+      <a href="{{ request.path }}">Clear search</a>
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <span class="empty-icon">&#128172;</span>
+      <strong>No conversations yet</strong>
+      <p>Patient chats will appear here once messages come in.</p>
+    </div>
+  {% endif %}
+</div>
+
+{% endblock %}

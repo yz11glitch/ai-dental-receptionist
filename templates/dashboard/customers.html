@@ -1,0 +1,92 @@
+{% extends "dashboard/base.html" %}
+
+{% block page_title %}Customers{% endblock %}
+
+{% block content %}
+<h1>
+  Customers
+  <span class="badge badge-gray" style="font-size: 12px; margin-left: 8px; vertical-align: middle;">{{ total }}</span>
+</h1>
+
+<div class="search-bar">
+  <form method="GET" class="search-form">
+    <input type="text" id="search-q" name="q" value="{{ q }}" placeholder="Search by name or phone..." class="search-input">
+    <select name="sort" class="search-select" onchange="this.closest('form').submit()">
+      <option value="recent" {% if sort == "recent" %}selected{% endif %}>Recently active</option>
+      <option value="bookings" {% if sort == "bookings" %}selected{% endif %}>Most bookings</option>
+      <option value="name" {% if sort == "name" %}selected{% endif %}>Name A–Z</option>
+    </select>
+    <button type="submit" class="btn-search">Search</button>
+    {% if q %}<a href="{{ request.path }}" class="clear-search">Clear</a>{% endif %}
+  </form>
+</div>
+
+<div class="card" style="padding: 0; overflow: hidden;">
+  {% if customers %}
+    <div class="responsive-table-wrap" style="padding: 0;">
+    <table class="responsive-table">
+      <thead>
+        <tr>
+          <th style="padding-left: 20px;">Name</th>
+          <th>Phone</th>
+          <th>Last Contact</th>
+          <th>Last Appointment</th>
+          <th style="text-align: center; padding-right: 20px;">Total Bookings</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for customer in customers %}
+        <tr>
+          <td data-label="Name" style="padding-left: 20px;">
+            {% if customer.name %}
+              <span style="font-weight: 600;">{{ customer.name }}</span>
+            {% else %}
+              <span style="color: var(--color-text-faint); font-style: italic;">Unknown</span>
+            {% endif %}
+          </td>
+          <td data-label="Phone" style="font-family: 'SFMono-Regular', 'Consolas', monospace; font-size: 12.5px;">
+            <a href="/dashboard/conversations/{{ customer.phone | urlencode }}">{{ customer.phone }}</a>
+          </td>
+          <td data-label="Last Contact" style="color: var(--color-text-muted); font-size: 12px;">
+            {{ customer.last_contact_at.strftime('%d %b %Y, %I:%M %p') if customer.last_contact_at else '—' }}
+          </td>
+          <td data-label="Last Appointment" style="color: var(--color-text-muted); font-size: 12px;">
+            {{ customer.last_appointment_at.strftime('%d %b %Y') if customer.last_appointment_at else '—' }}
+          </td>
+          <td data-label="Bookings" style="text-align: center; padding-right: 20px;">
+            <span class="badge badge-gray">{{ customer.total_bookings }}</span>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+
+    {% if total_pages > 1 %}
+    <div class="pagination" style="border-top: 1px solid #F1F5F9;">
+      {% set base_qs = "?" ~ ("q=" ~ q ~ "&" if q else "") ~ ("sort=" ~ sort ~ "&" if sort != "recent" else "") %}
+      {% if page > 1 %}
+        <a href="{{ base_qs }}page={{ page - 1 }}">&larr; Prev</a>
+      {% endif %}
+      <span class="current">{{ page }} / {{ total_pages }}</span>
+      {% if page < total_pages %}
+        <a href="{{ base_qs }}page={{ page + 1 }}">Next &rarr;</a>
+      {% endif %}
+    </div>
+    {% endif %}
+
+  {% elif q %}
+    <div class="empty-state">
+      <p>No results for <strong>{{ q }}</strong>.</p>
+      <a href="{{ request.path }}">Clear search</a>
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <span class="empty-icon">&#128100;</span>
+      <strong>No customers yet</strong>
+      <p>Customers appear automatically when patients contact the clinic.</p>
+    </div>
+  {% endif %}
+</div>
+
+{% endblock %}

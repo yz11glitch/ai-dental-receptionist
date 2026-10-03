@@ -1,0 +1,116 @@
+{% extends "dashboard/base.html" %}
+
+{% block styles %}
+.billing-page { max-width: 760px; }
+.billing-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.billing-item {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  background: var(--color-bg);
+}
+.billing-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+}
+.billing-value {
+  margin-top: 5px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+.badge-paid        { background: #D1FAE5; color: #065F46; }
+.badge-overdue     { background: #FEE2E2; color: #991B1B; }
+.badge-unpaid      { background: #FEE2E2; color: #991B1B; }
+.badge-due         { background: #FEF3C7; color: #92400E; }
+.badge-paused      { background: #F1F5F9; color: #94A3B8; }
+.badge-not_started { background: #F1F5F9; color: #94A3B8; }
+@media (max-width: 768px) {
+  .billing-grid { grid-template-columns: 1fr; }
+}
+{% endblock %}
+
+{% block page_title %}Billing{% endblock %}
+
+{% block content %}
+<div class="billing-page">
+  <h1 style="font-size:20px;font-weight:700;color:var(--color-text);margin-bottom:20px;">Billing</h1>
+
+  <div class="card">
+    <p style="margin-bottom:14px;font-size:13px;color:var(--color-text-muted);">
+      {{ clinic.name }}
+    </p>
+    {% set bs = billing.billing_status %}
+    <div class="billing-grid">
+
+      <div class="billing-item">
+        <div class="billing-label">Plan</div>
+        <div class="billing-value">
+          {% if billing.billing_plan == 'founding' %}Founding Plan
+          {% elif billing.billing_plan == 'standard' %}Standard Plan
+          {% else %}—{% endif %}
+        </div>
+      </div>
+
+      <div class="billing-item">
+        <div class="billing-label">Monthly Price</div>
+        <div class="billing-value">
+          {% if billing.effective_price is not none %}
+            RM{{ '%.0f' % billing.effective_price }}/mo
+          {% else %}—{% endif %}
+        </div>
+      </div>
+
+      <div class="billing-item">
+        <div class="billing-label">Status</div>
+        <div class="billing-value">
+          <span class="badge badge-{{ bs }}">{{ bs | upper | replace('_', ' ') }}</span>
+        </div>
+      </div>
+
+      <div class="billing-item">
+        <div class="billing-label">Next Due Date</div>
+        <div class="billing-value">
+          {{ billing.next_due_date.strftime('%d %b %Y') if billing.next_due_date else '—' }}
+        </div>
+      </div>
+
+      <div class="billing-item">
+        <div class="billing-label">Last Paid Date</div>
+        <div class="billing-value">
+          {{ billing.last_paid_date.strftime('%d %b %Y') if billing.last_paid_date else '—' }}
+        </div>
+      </div>
+
+      <div class="billing-item">
+        <div class="billing-label">Amount Due</div>
+        <div class="billing-value" style="{% if billing.amount_due %}color:#991B1B;{% endif %}">
+          RM{{ '%.0f' % billing.amount_due }}
+        </div>
+      </div>
+
+      {% if billing.billing_notes %}
+      <div class="billing-item" style="grid-column: span 2;">
+        <div class="billing-label">Notes</div>
+        <div class="billing-value" style="font-size:13px;font-weight:500;">{{ billing.billing_notes }}</div>
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+</div>
+{% endblock %}

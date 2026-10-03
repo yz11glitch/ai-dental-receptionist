@@ -1,0 +1,333 @@
+{% extends "dashboard/base.html" %}
+
+{% block styles %}
+.settings-page { max-width: 720px; }
+.settings-section {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 24px 28px;
+  margin-bottom: 24px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+.settings-section h2 {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 18px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--color-border);
+}
+.form-row { margin-bottom: 16px; }
+.form-row label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 6px;
+}
+.form-row input,
+.form-row select,
+.form-row textarea {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  font-size: 14px;
+  color: var(--color-text);
+  background: var(--color-bg);
+  outline: none;
+  transition: border-color 0.15s;
+}
+.form-row input:focus,
+.form-row select:focus,
+.form-row textarea:focus { border-color: var(--color-accent); }
+.form-row textarea { resize: vertical; min-height: 80px; }
+.form-row .hint {
+  font-size: 11px;
+  color: var(--color-text-faint);
+  margin-top: 4px;
+}
+.hours-row { display: flex; gap: 16px; }
+.hours-row .form-row { flex: 1; }
+.btn-save {
+  padding: 9px 20px;
+  background: var(--color-accent);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-save:hover { background: var(--color-accent-dark); }
+.btn-danger {
+  padding: 6px 14px;
+  background: transparent;
+  color: var(--color-danger);
+  border: 1px solid var(--color-danger);
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.btn-danger:hover { background: var(--color-danger); color: #fff; }
+.btn-toggle {
+  padding: 5px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  transition: background 0.15s;
+}
+.btn-toggle:hover { background: var(--color-accent-light); color: var(--color-accent); }
+.promo-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+.promo-table th {
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+  padding: 0 0 8px;
+  border-bottom: 1px solid var(--color-border);
+}
+.promo-table td {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 13px;
+  vertical-align: middle;
+}
+.promo-table td:last-child { text-align: right; }
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+.badge-active { background: #D1FAE5; color: #065F46; }
+.badge-inactive { background: #F1F5F9; color: #94A3B8; }
+.promo-desc { font-size: 12px; color: var(--color-text-muted); margin-top: 2px; }
+.add-promo-form { display: grid; grid-template-columns: 1fr 2fr auto; gap: 10px; align-items: end; }
+.add-promo-form .form-row { margin-bottom: 0; }
+.flash-list { list-style: none; margin: 0 0 16px; padding: 0; }
+.flash-list li {
+  padding: 10px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+.flash-success { background: #D1FAE5; color: #065F46; border: 1px solid #6EE7B7; }
+.flash-error   { background: #FEE2E2; color: #991B1B; border: 1px solid #FCA5A5; }
+{% endblock %}
+
+{% block content %}
+<div class="settings-page">
+  <h1 style="font-size:20px;font-weight:700;color:var(--color-text);margin-bottom:20px;">Settings</h1>
+  <p style="margin:-10px 0 18px;font-size:12px;color:var(--color-text-muted);">
+    <a href="/dashboard/updates">View updates / patch notes</a>
+  </p>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <ul class="flash-list">
+        {% for category, message in messages %}
+          <li class="flash-{{ category }}">{{ message }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  {% endwith %}
+
+  <!-- ── Tone, Welcome Message, Hours ──────────────────────── -->
+  <form method="POST" action="/dashboard/settings">
+    <div class="settings-section">
+      <h2>Bot Tone</h2>
+      <div class="form-row">
+        <label for="tone">Tone preset</label>
+          <select name="tone" id="tone">
+            {% for t in valid_tones %}
+            <option value="{{ t }}" {% if current_tone == t %}selected{% endif %}>
+              {{ t | capitalize }}
+            </option>
+          {% endfor %}
+        </select>
+        <p class="hint">Controls the AI's communication style. "Professional" is the default.</p>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <h2>Welcome Message</h2>
+      <div class="form-row">
+        <label for="welcome_message">Message</label>
+        <textarea name="welcome_message" id="welcome_message" rows="3" placeholder="e.g. Welcome to {{ clinic.name }}! How can we help you today?">{{ welcome_message }}</textarea>
+        <p class="hint">Shown as the bot's greeting when a patient first messages the clinic. Leave blank to use the default greeting.</p>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <h2>Clinic Hours</h2>
+      <div class="hours-row">
+        <div class="form-row">
+          <label for="open_hour">Opening hour (24h)</label>
+          <input type="number" name="open_hour" id="open_hour" min="0" max="23" value="{{ clinic_hours.open_hour }}">
+        </div>
+        <div class="form-row">
+          <label for="close_hour">Closing hour (24h)</label>
+          <input type="number" name="close_hour" id="close_hour" min="0" max="23" value="{{ clinic_hours.close_hour }}">
+        </div>
+      </div>
+      <div class="form-row">
+        <label for="hours_text">Hours display text</label>
+        <input type="text" name="hours_text" id="hours_text" value="{{ clinic_hours.hours_text or '' }}" placeholder="e.g. Monday to Saturday, 10:00 to 18:00. Closed Sunday.">
+        <p class="hint">Shown to patients when they ask about clinic hours.</p>
+      </div>
+      <div class="hours-row">
+        <div class="form-row">
+          <label for="lunch_start">Lunch start (optional)</label>
+          <input type="time" name="lunch_start" id="lunch_start" value="{{ clinic_hours.lunch_start or '' }}">
+        </div>
+        <div class="form-row">
+          <label for="lunch_end">Lunch end (optional)</label>
+          <input type="time" name="lunch_end" id="lunch_end" value="{{ clinic_hours.lunch_end or '' }}">
+        </div>
+      </div>
+    </div>
+
+    <button type="submit" class="btn-save">Save Settings</button>
+  </form>
+
+  <!-- ── Services ──────────────────────────────────────────── -->
+  <div class="settings-section" style="margin-top:28px;">
+    <h2>Services</h2>
+
+    {% if services %}
+      <table class="promo-table">
+        <thead>
+          <tr>
+            <th style="width:35%">Name</th>
+            <th style="width:20%">Duration (min)</th>
+            <th style="width:20%">Price (RM)</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for svc in services %}
+          <tr>
+            <td>
+              <form id="svc-form-{{ svc.id }}" method="POST" action="/dashboard/settings/services/{{ svc.id }}/update"></form>
+              <input form="svc-form-{{ svc.id }}" type="text" name="name" value="{{ svc.service_name }}" required style="width:100%;padding:6px 8px;font-size:13px;border:1px solid var(--color-border);border-radius:5px;background:var(--color-bg);color:var(--color-text);">
+            </td>
+            <td>
+              <input form="svc-form-{{ svc.id }}" type="number" name="duration_minutes" value="{{ svc.duration_minutes }}" min="1" required style="width:100%;padding:6px 8px;font-size:13px;border:1px solid var(--color-border);border-radius:5px;background:var(--color-bg);color:var(--color-text);">
+            </td>
+            <td>
+              <input form="svc-form-{{ svc.id }}" type="number" name="price" value="{{ svc.price if svc.price is not none else '' }}" min="0" step="0.01" placeholder="—" style="width:100%;padding:6px 8px;font-size:13px;border:1px solid var(--color-border);border-radius:5px;background:var(--color-bg);color:var(--color-text);">
+            </td>
+            <td>
+              <div style="display:flex;gap:8px;justify-content:flex-end;">
+                <button form="svc-form-{{ svc.id }}" type="submit" class="btn-toggle">Save</button>
+                <form method="POST" action="/dashboard/settings/services/{{ svc.id }}/delete" style="display:inline;"
+                      onsubmit="return confirm('Remove this service?')">
+                  <button type="submit" class="btn-danger">Delete</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p style="color:var(--color-text-muted);font-size:13px;margin-bottom:20px;">No services configured yet.</p>
+    {% endif %}
+
+    <form method="POST" action="/dashboard/settings/services/add" class="add-promo-form" style="grid-template-columns:2fr 1fr 1fr auto;">
+      <div class="form-row">
+        <label for="svc_name">Name</label>
+        <input type="text" name="name" id="svc_name" placeholder="e.g. Scaling" required>
+      </div>
+      <div class="form-row">
+        <label for="svc_duration">Duration (min)</label>
+        <input type="number" name="duration_minutes" id="svc_duration" min="1" placeholder="e.g. 60" required>
+      </div>
+      <div class="form-row">
+        <label for="svc_price">Price RM (optional)</label>
+        <input type="number" name="price" id="svc_price" min="0" step="0.01" placeholder="e.g. 80">
+      </div>
+      <div class="form-row">
+        <label>&nbsp;</label>
+        <button type="submit" class="btn-save">Add</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- ── Promotions ─────────────────────────────────────────── -->
+  <div class="settings-section" style="margin-top:28px;">
+    <h2>Promotions</h2>
+
+    {% if promotions %}
+      <table class="promo-table">
+        <thead>
+          <tr>
+            <th style="width:40%">Title</th>
+            <th style="width:40%">Description</th>
+            <th style="width:10%">Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for promo in promotions %}
+          <tr>
+            <td><strong>{{ promo.title }}</strong></td>
+            <td><span class="promo-desc">{{ promo.description or '—' }}</span></td>
+            <td>
+              <span class="badge {% if promo.is_active %}badge-active{% else %}badge-inactive{% endif %}">
+                {{ 'Active' if promo.is_active else 'Inactive' }}
+              </span>
+            </td>
+            <td>
+              <div style="display:flex;gap:8px;justify-content:flex-end;">
+                <form method="POST" action="/dashboard/settings/promotions/{{ promo.id }}/toggle" style="display:inline;">
+                  <button type="submit" class="btn-toggle">
+                    {{ 'Deactivate' if promo.is_active else 'Activate' }}
+                  </button>
+                </form>
+                <form method="POST" action="/dashboard/settings/promotions/{{ promo.id }}/delete" style="display:inline;"
+                      onsubmit="return confirm('Delete this promotion?')">
+                  <button type="submit" class="btn-danger">Delete</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p style="color:var(--color-text-muted);font-size:13px;margin-bottom:20px;">No promotions yet.</p>
+    {% endif %}
+
+    <form method="POST" action="/dashboard/settings/promotions/add" class="add-promo-form">
+      <div class="form-row">
+        <label for="promo_title">Title</label>
+        <input type="text" name="title" id="promo_title" placeholder="e.g. Whitening Special" required>
+      </div>
+      <div class="form-row">
+        <label for="promo_desc">Description (optional)</label>
+        <input type="text" name="description" id="promo_desc" placeholder="e.g. 20% off this month">
+      </div>
+      <div class="form-row">
+        <label>&nbsp;</label>
+        <button type="submit" class="btn-save">Add</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

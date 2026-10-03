@@ -1,0 +1,297 @@
+{% extends "dashboard/base.html" %}
+
+{% block styles %}
+.billing-page { max-width: 960px; }
+.clinic-billing-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 20px 24px;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+.clinic-billing-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.clinic-billing-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+.billing-quick-actions { display: flex; align-items: center; gap: 8px; }
+.primary-row {
+  display: grid;
+  grid-template-columns: 180px 160px auto auto auto auto;
+  gap: 14px;
+  align-items: end;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+.billing-field label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+  margin-bottom: 5px;
+}
+.billing-field select,
+.billing-field input[type="date"],
+.billing-field input[type="number"],
+.billing-field input[type="text"],
+.billing-field textarea {
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--color-text);
+  background: var(--color-bg);
+}
+.billing-field textarea { resize: vertical; min-height: 58px; font-size: 12px; }
+.computed-field label { color: var(--color-text-faint); }
+.computed-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  padding: 7px 0;
+}
+.badge {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+.badge-paid      { background: #D1FAE5; color: #065F46; }
+.badge-overdue   { background: #FEE2E2; color: #991B1B; }
+.badge-unpaid    { background: #FEE2E2; color: #991B1B; }
+.badge-due       { background: #FEF3C7; color: #92400E; }
+.badge-paused    { background: #F1F5F9; color: #94A3B8; }
+.badge-not_started { background: #F1F5F9; color: #94A3B8; }
+.price-note {
+  font-size: 11px;
+  color: var(--color-text-faint);
+  margin-top: 2px;
+}
+.price-override-note { color: #B45309; }
+details.advanced-block {
+  margin-top: 12px;
+  border-top: 1px solid var(--color-border);
+  padding-top: 12px;
+}
+details.advanced-block summary {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+details.advanced-block summary::before {
+  content: '▶';
+  font-size: 9px;
+  transition: transform 0.15s;
+  display: inline-block;
+}
+details[open].advanced-block summary::before { transform: rotate(90deg); }
+.advanced-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 12px;
+}
+.advanced-grid-wide { grid-column: span 3; }
+.form-actions { display: flex; gap: 8px; align-items: center; margin-top: 14px; }
+.btn-save-billing {
+  padding: 8px 18px;
+  background: var(--color-accent);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn-save-billing:hover { opacity: 0.88; }
+.btn-mark-paid {
+  padding: 8px 16px;
+  background: #ECFDF5;
+  color: #065F46;
+  border: 1px solid #A7F3D0;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn-mark-paid:hover { background: #D1FAE5; }
+{% endblock %}
+
+{% block page_title %}Admin Billing{% endblock %}
+
+{% block content %}
+<div class="billing-page">
+  <h1 style="font-size:20px;font-weight:700;color:var(--color-text);margin-bottom:6px;">Admin Billing</h1>
+  <p style="font-size:12px;color:var(--color-text-muted);margin-bottom:20px;">
+    Set the plan and billing start date. Click <strong>Mark Paid</strong> when payment is received.
+  </p>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div style="margin-bottom:14px;">
+        {% for category, message in messages %}
+          <div style="padding:8px 12px;border-radius:6px;font-size:12px;margin-bottom:6px;
+               {% if category == 'error' %}background:#FEE2E2;color:#991B1B;border:1px solid #FCA5A5;
+               {% else %}background:#D1FAE5;color:#065F46;border:1px solid #6EE7B7;{% endif %}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  {% if rows %}
+    {% for row in rows %}
+    {% set b = row.billing %}
+    {% set bs = b.billing_status %}
+    <div class="clinic-billing-card">
+      <div class="clinic-billing-header">
+        <div>
+          <div class="clinic-billing-name">{{ row.clinic.name }}</div>
+          <div style="font-size:12px;color:var(--color-text-muted);margin-top:2px;">{{ row.clinic.location }}</div>
+        </div>
+        <div class="billing-quick-actions">
+          <form method="POST" action="/dashboard/admin/billing/{{ row.clinic.id }}/mark-paid">
+            <button type="submit" class="btn-mark-paid">Mark Paid Today</button>
+          </form>
+        </div>
+      </div>
+
+      <form method="POST" action="/dashboard/admin/billing/{{ row.clinic.id }}/update">
+
+        <!-- ── Primary fields ── -->
+        <div class="primary-row">
+
+          <div class="billing-field">
+            <label for="bp-{{ row.clinic.id }}">Plan</label>
+            <select name="billing_plan" id="bp-{{ row.clinic.id }}">
+              <option value="" {{ 'selected' if not b.billing_plan else '' }}>— No plan —</option>
+              <option value="founding" {{ 'selected' if b.billing_plan == 'founding' else '' }}>
+                Founding — RM249/mo
+              </option>
+              <option value="standard" {{ 'selected' if b.billing_plan == 'standard' else '' }}>
+                Standard — RM349/mo
+              </option>
+            </select>
+          </div>
+
+          <div class="billing-field">
+            <label for="bsd-{{ row.clinic.id }}">Billing start date</label>
+            <input type="date" name="billing_start_date" id="bsd-{{ row.clinic.id }}"
+                   value="{{ b.billing_start_date.isoformat() if b.billing_start_date else '' }}">
+          </div>
+
+          <div class="billing-field computed-field">
+            <label>Status</label>
+            <div class="computed-value">
+              <span class="badge badge-{{ bs }}">{{ bs | upper | replace('_', ' ') }}</span>
+            </div>
+          </div>
+
+          <div class="billing-field computed-field">
+            <label>Next due</label>
+            <div class="computed-value">
+              {% if b.next_due_date %}{{ b.next_due_date.strftime('%d %b %Y') }}
+              {% else %}—{% endif %}
+            </div>
+          </div>
+
+          <div class="billing-field computed-field">
+            <label>Effective price</label>
+            <div class="computed-value">
+              {% if b.effective_price is not none %}
+                RM{{ '%.0f' % b.effective_price }}/mo
+                {% if b.using_price_override %}
+                  <div class="price-note price-override-note">custom override</div>
+                {% elif b.billing_plan %}
+                  <div class="price-note">{{ b.billing_plan }} plan default</div>
+                {% endif %}
+              {% else %}—{% endif %}
+            </div>
+          </div>
+
+          <div class="billing-field computed-field">
+            <label>Amount due</label>
+            <div class="computed-value" style="{% if b.amount_due %}color:#991B1B;{% endif %}">
+              RM{{ '%.0f' % b.amount_due }}
+            </div>
+          </div>
+
+        </div>
+
+        <!-- ── Advanced overrides ── -->
+        <details class="advanced-block" {% if b.price_override is not none or b.billing_cycle_days != 30 or b.billing_status == 'paused' %}open{% endif %}>
+          <summary>Advanced overrides</summary>
+          <div class="advanced-grid">
+
+            <div class="billing-field">
+              <label>Price override (RM)</label>
+              <input type="number" name="price_override" min="0" step="0.01"
+                     value="{{ '%.2f' % b.price_override if b.price_override is not none else '' }}"
+                     placeholder="Leave blank to use plan default">
+            </div>
+
+            <div class="billing-field">
+              <label>Billing cycle (days)</label>
+              <input type="number" name="billing_cycle_days" min="1"
+                     value="{{ b.billing_cycle_days }}">
+            </div>
+
+            <div class="billing-field">
+              <label>Last paid date (correction)</label>
+              <input type="date" name="last_paid_date"
+                     value="{{ b.last_paid_date.isoformat() if b.last_paid_date else '' }}">
+            </div>
+
+            <div class="billing-field advanced-grid-wide">
+              <label>Notes</label>
+              <textarea name="billing_notes">{{ b.billing_notes or '' }}</textarea>
+            </div>
+
+            <div class="billing-field" style="align-self:center;">
+              <label style="display:flex;align-items:center;gap:7px;cursor:pointer;text-transform:none;font-size:12px;">
+                <input type="checkbox" name="billing_paused" value="1"
+                       {{ 'checked' if b.billing_status == 'paused' else '' }}
+                       style="width:auto;">
+                Pause billing
+              </label>
+            </div>
+
+          </div>
+        </details>
+
+        <div class="form-actions">
+          <button type="submit" class="btn-save-billing">Save</button>
+        </div>
+
+      </form>
+    </div>
+    {% endfor %}
+  {% else %}
+    <div class="card">
+      <p style="color:var(--color-text-muted);font-size:13px;">No active clinics found.</p>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

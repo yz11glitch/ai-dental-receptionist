@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+venv/
+.venv/
+
+# Secrets / local config
+.env
+.env.*
+!.env.example
+*.save
+*.pem
+*.key
+credentials*.json
+service-account*.json
+
+# Local data — never commit real clinic, patient or prospect data
+*.db
+*.sqlite
+*.sqlite3
+backup_*.sql
+*.csv
+cache/
+data/
+
+# Generated assets
+*.png
+*.pdf
+
+# Editor / OS / agent-local
+.DS_Store
+.idea/
+.vscode/
+.claude/

@@ -1,0 +1,97 @@
+{% extends "dashboard/base.html" %}
+
+{% block page_title %}Bookings{% endblock %}
+
+{% block content %}
+<h1>Booking Log</h1>
+
+<div class="search-bar">
+  <form method="GET" class="search-form">
+    <input type="text" id="search-q" name="q" value="{{ q }}" placeholder="Search by patient name or phone..." class="search-input">
+    <select name="period" class="search-select" onchange="this.closest('form').submit()">
+      <option value="all" {% if period == "all" %}selected{% endif %}>All time</option>
+      <option value="today" {% if period == "today" %}selected{% endif %}>Today</option>
+      <option value="upcoming" {% if period == "upcoming" %}selected{% endif %}>Upcoming</option>
+      <option value="past" {% if period == "past" %}selected{% endif %}>Past</option>
+    </select>
+    <button type="submit" class="btn-search">Search</button>
+    {% if q or period != "all" %}<a href="{{ request.path }}" class="clear-search">Clear</a>{% endif %}
+  </form>
+</div>
+
+<div class="card" style="padding: 0; overflow: hidden;">
+  {% if bookings %}
+    <div class="responsive-table-wrap" style="padding: 0;">
+    <table class="responsive-table">
+      <thead>
+        <tr>
+          <th style="padding-left: 20px;">Patient Phone</th>
+          <th>Patient Name</th>
+          <th>Service</th>
+          <th>Date</th>
+          <th>Time</th>
+          <th>Status</th>
+          <th style="padding-right: 20px;">Created</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for b in bookings %}
+        <tr>
+          <td data-label="Phone" style="font-family: 'SFMono-Regular', 'Consolas', monospace; font-size: 12.5px; padding-left: 20px;">
+            <a href="/dashboard/conversations/{{ b.user | urlencode }}">{{ b.user }}</a>
+          </td>
+          <td data-label="Patient" style="font-weight: 500;">{{ b.name }}</td>
+          <td data-label="Service" style="color: var(--color-text-muted);">{{ b.service }}</td>
+          <td data-label="Date" style="color: var(--color-text-muted);">{{ b.date }}</td>
+          <td data-label="Time" style="color: var(--color-text-muted);">{{ b.time }}</td>
+          <td data-label="Status">
+            {% set s = b.status | lower %}
+            {% if s == "booked" or s == "pending" %}
+              <span class="badge badge-green">{{ b.status }}</span>
+            {% elif s == "cancelled" %}
+              <span class="badge badge-red">{{ b.status }}</span>
+            {% elif s == "rescheduled" %}
+              <span class="badge badge-blue">{{ b.status }}</span>
+            {% elif s == "failed" %}
+              <span class="badge badge-orange">{{ b.status }}</span>
+            {% else %}
+              <span class="badge badge-gray">{{ b.status }}</span>
+            {% endif %}
+          </td>
+          <td data-label="Created" style="font-size: 12px; color: var(--color-text-muted); padding-right: 20px;">
+            {{ b.created_at.strftime("%d %b %Y, %H:%M") }}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+
+    {% if total_pages > 1 %}
+    <div class="pagination" style="border-top: 1px solid #F1F5F9;">
+      {% set base_qs = "?" ~ ("q=" ~ q ~ "&" if q else "") ~ ("period=" ~ period ~ "&" if period != "all" else "") %}
+      {% if page > 1 %}
+        <a href="{{ base_qs }}page={{ page - 1 }}">&larr; Prev</a>
+      {% endif %}
+      <span class="current">{{ page }} / {{ total_pages }}</span>
+      {% if page < total_pages %}
+        <a href="{{ base_qs }}page={{ page + 1 }}">Next &rarr;</a>
+      {% endif %}
+    </div>
+    {% endif %}
+
+  {% elif q or period != "all" %}
+    <div class="empty-state">
+      <p>No results{% if q %} for <strong>{{ q }}</strong>{% endif %}{% if period != "all" %} in <strong>{{ period }}</strong>{% endif %}.</p>
+      <a href="{{ request.path }}">Clear search</a>
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <span class="empty-icon">&#128197;</span>
+      <strong>No bookings recorded yet</strong>
+      <p>Appointments will appear here once patients start booking.</p>
+    </div>
+  {% endif %}
+</div>
+
+{% endblock %}

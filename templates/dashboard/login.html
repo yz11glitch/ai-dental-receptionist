@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign In — Atria AI</title>
+  <style>
+    :root {
+      --color-accent:      #3B82F6;
+      --color-accent-dark: #2563EB;
+      --color-bg:          #F8FAFC;
+      --color-surface:     #FFFFFF;
+      --color-border:      #E2E8F0;
+      --color-text:        #1E293B;
+      --color-text-muted:  #64748B;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--color-text);
+      background: var(--color-bg);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .login-wrap {
+      width: 100%;
+      max-width: 380px;
+      padding: 24px;
+    }
+    .login-header {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+    .login-logo-mark {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      background: var(--color-accent);
+      border-radius: 9px;
+      margin-bottom: 14px;
+    }
+    .login-logo-mark span {
+      font-size: 16px;
+      font-weight: 700;
+      color: #FFFFFF;
+      letter-spacing: -0.02em;
+    }
+    .login-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--color-text);
+      letter-spacing: -0.02em;
+      margin-bottom: 4px;
+    }
+    .login-subtitle {
+      font-size: 13px;
+      color: var(--color-text-muted);
+    }
+    .login-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 14px;
+      padding: 32px 30px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06), 0 6px 24px rgba(0,0,0,0.04);
+    }
+    .form-field {
+      margin-bottom: 16px;
+    }
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--color-text);
+      margin-bottom: 6px;
+      letter-spacing: 0.01em;
+    }
+    input[type="email"],
+    input[type="password"] {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1px solid var(--color-border);
+      border-radius: 7px;
+      font-size: 14px;
+      font-family: inherit;
+      color: var(--color-text);
+      background: var(--color-surface);
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    input[type="email"]:focus,
+    input[type="password"]:focus {
+      border-color: var(--color-accent);
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.14);
+    }
+    button[type="submit"] {
+      width: 100%;
+      padding: 10px;
+      background: var(--color-accent);
+      color: #FFFFFF;
+      border: none;
+      border-radius: 7px;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      margin-top: 6px;
+      transition: background 0.15s;
+    }
+    button[type="submit"]:hover { background: var(--color-accent-dark); }
+    button[type="submit"]:active { background: #1D4ED8; }
+    .flash-errors { margin-bottom: 18px; }
+    .flash-error {
+      background: #FEF2F2;
+      border: 1px solid #FECACA;
+      color: #991B1B;
+      border-radius: 7px;
+      padding: 9px 13px;
+      font-size: 13px;
+    }
+
+    @media (max-width: 768px) {
+      .login-wrap {
+        padding: 16px;
+        max-width: 100%;
+      }
+      .login-card {
+        padding: 24px 20px;
+      }
+      /* 16px prevents iOS from auto-zooming on input focus */
+      input[type="email"],
+      input[type="password"] {
+        font-size: 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="login-wrap">
+    <div class="login-header">
+      <div class="login-logo-mark"><span>A</span></div>
+      <div class="login-title">Atria AI</div>
+      <p class="login-subtitle">Sign in to your clinic dashboard</p>
+    </div>
+
+    <div class="login-card">
+      {% with messages = get_flashed_messages() %}
+        {% if messages %}
+          <div class="flash-errors">
+            {% for msg in messages %}
+              <div class="flash-error">{{ msg }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      <form method="post" action="/dashboard/login">
+        <div class="form-field">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" autocomplete="username" required>
+        </div>
+        <div class="form-field">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" autocomplete="current-password" required>
+        </div>
+        <button type="submit">Sign In</button>
+      </form>
+    </div>
+  </div>
+</body>
+</html>
