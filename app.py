@@ -1,6 +1,7 @@
 import os
 import re
 import json
+import hmac
 import html
 import logging
 import urllib.request
@@ -41,6 +42,15 @@ GOOGLE_CALENDAR_ID = os.environ.get("GOOGLE_CALENDAR_ID", "primary")
 GOOGLE_SERVICE_ACCOUNT_FILE = os.environ.get("GOOGLE_SERVICE_ACCOUNT_FILE", "service_account.json")
 GOOGLE_SERVICE_ACCOUNT_JSON = os.environ.get("GOOGLE_SERVICE_ACCOUNT_JSON")
 
+
+def _env_flag(name: str) -> bool:
+    return os.environ.get(name, "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+# Explicit opt-in to accept /whatsapp webhooks without a Twilio signature
+# (only for local testing when TWILIO_AUTH_TOKEN is not configured).
+ALLOW_UNSIGNED_WEBHOOKS = _env_flag("ALLOW_UNSIGNED_WEBHOOKS")
+
 TWILIO_ACCOUNT_SID = os.environ.get("TWILIO_ACCOUNT_SID")
 TWILIO_AUTH_TOKEN = os.environ.get("TWILIO_AUTH_TOKEN")
 TWILIO_WHATSAPP_FROM = os.environ.get("TWILIO_WHATSAPP_FROM")
@@ -49,7 +59,9 @@ DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///app.db")
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
-REMINDER_SECRET = os.environ.get("REMINDER_SECRET", "change-me")
+# Shared secret for the /tasks/* cron endpoints (sent as X-Reminder-Secret).
+# No default: when unset, those endpoints reject every request.
+REMINDER_SECRET = os.environ.get("REMINDER_SECRET") or None
 SENTRY_DSN = os.environ.get("SENTRY_DSN")
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
@@ -2829,13 +2841,20 @@ def chat_reset():
 
 @app.route("/whatsapp", methods=["POST"])
 def whatsapp():
-    # --- Twilio signature validation ---
+    # --- Twilio signature validation (fail closed) ---
     if TWILIO_AUTH_TOKEN:
         validator = RequestValidator(TWILIO_AUTH_TOKEN)
         signature = request.headers.get("X-Twilio-Signature", "")
         if not validator.validate(request.url, request.form, signature):
             logger.warning("Invalid Twilio signature — rejected request from %s", request.remote_addr)
             abort(403)
+    elif not ALLOW_UNSIGNED_WEBHOOKS:
+        logger.error(
+            "TWILIO_AUTH_TOKEN is not set — rejecting unsigned webhook from %s "
+            "(set ALLOW_UNSIGNED_WEBHOOKS=1 only for local testing)",
+            request.remote_addr,
+        )
+        abort(403)
 
     raw_body = request.form.get("Body")
     msg = (raw_body or "").strip()
@@ -2932,11 +2951,19 @@ def whatsapp():
     return Response(str(twilio), mimetype="application/xml")
 
 
+def _require_task_secret() -> None:
+    """Reject /tasks/* requests unless X-Reminder-Secret matches REMINDER_SECRET."""
+    if not REMINDER_SECRET:
+        logger.error("REMINDER_SECRET is not set — rejecting %s", request.path)
+        abort(403)
+    token = request.headers.get("X-Reminder-Secret", "")
+    if not hmac.compare_digest(token.encode("utf-8"), REMINDER_SECRET.encode("utf-8")):
+        abort(403)
+
+
 @app.route("/tasks/process-reminders", methods=["POST", "GET"])
 def process_reminders_route():
-    token = request.headers.get("X-Reminder-Secret") or request.args.get("secret")
-    if token != REMINDER_SECRET:
-        abort(403)
+    _require_task_secret()
 
     result = process_reminders()
     return jsonify(result)
@@ -2944,9 +2971,7 @@ def process_reminders_route():
 
 @app.route("/tasks/daily-summary", methods=["POST", "GET"])
 def daily_summary_route():
-    token = request.headers.get("X-Reminder-Secret") or request.args.get("secret")
-    if token != REMINDER_SECRET:
-        abort(403)
+    _require_task_secret()
 
     today_utc = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
 
@@ -2986,9 +3011,7 @@ def daily_summary_route():
 
 @app.route("/tasks/calendar-health-check", methods=["GET", "POST"])
 def calendar_health_check_route():
-    token = request.args.get("token") or request.headers.get("X-Reminder-Secret")
-    if token != REMINDER_SECRET:
-        abort(403)
+    _require_task_secret()
     result = run_calendar_health_checks()
     return jsonify(result)
 

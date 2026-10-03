@@ -25,10 +25,17 @@ _TEST_ENV = {
     "TWILIO_AUTH_TOKEN": "authtest",
     "TWILIO_WHATSAPP_FROM": "whatsapp:+14155238886",
     "GOOGLE_CALENDAR_ID": "primary",
+    "REMINDER_SECRET": "test-reminder-secret",
 }
 
 for key, value in _TEST_ENV.items():
     os.environ.setdefault(key, value)
+
+# Run the suite against production defaults (signed webhooks, no admin
+# allow-list) regardless of the developer's shell; tests opt into dev
+# behaviour explicitly by patching app.ALLOW_UNSIGNED_WEBHOOKS.
+for key in ("ALLOW_UNSIGNED_WEBHOOKS", "DASHBOARD_ADMIN_EMAILS"):
+    os.environ.pop(key, None)
 
 
 def pytest_sessionfinish(session, exitstatus):

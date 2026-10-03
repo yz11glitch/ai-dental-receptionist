@@ -588,23 +588,20 @@ class TestEscalationWebhookBehavior:
     }
 
     def _post_whatsapp(self, app_client, msg, from_="+60199999999", to="whatsapp:+60111111111"):
-        return app_client.post("/whatsapp", data={
-            "Body": msg,
-            "From": from_,
-            "To": to,
-        })
-
-    def _bypass_twilio_validation(self):
-        """Context manager that bypasses Twilio signature validation in tests."""
-        from unittest.mock import patch
-        return patch("app.TWILIO_AUTH_TOKEN", None)
+        """POST a correctly signed webhook (real Twilio signature validation runs)."""
+        import app as app_module
+        from twilio.request_validator import RequestValidator
+        data = {"Body": msg, "From": from_, "To": to}
+        signature = RequestValidator(app_module.TWILIO_AUTH_TOKEN).compute_signature(
+            "http://localhost/whatsapp", data
+        )
+        return app_client.post("/whatsapp", data=data, headers={"X-Twilio-Signature": signature})
 
     def test_escalation_short_circuits_ai(self):
         """run_ai must NOT be called when escalation is detected."""
         import app as app_module
         with app_module.app.test_client() as client:
-            with self._bypass_twilio_validation(), \
-                 patch("app.get_clinic_by_twilio_number", return_value=self.CLINIC), \
+            with patch("app.get_clinic_by_twilio_number", return_value=self.CLINIC), \
                  patch("app.is_human_escalation_request", return_value=True), \
                  patch("app.has_unresolved_human_flag", return_value=False), \
                  patch("app.write_conversation_flag") as mock_flag, \
@@ -620,8 +617,7 @@ class TestEscalationWebhookBehavior:
         """Outbound must use the exact escalation acknowledgement string."""
         import app as app_module
         with app_module.app.test_client() as client:
-            with self._bypass_twilio_validation(), \
-                 patch("app.get_clinic_by_twilio_number", return_value=self.CLINIC), \
+            with patch("app.get_clinic_by_twilio_number", return_value=self.CLINIC), \
                  patch("app.is_human_escalation_request", return_value=True), \
                  patch("app.has_unresolved_human_flag", return_value=False), \
                  patch("app.write_conversation_flag"), \
@@ -642,8 +638,7 @@ class TestEscalationWebhookBehavior:
         """write_conversation_flag must be called with 'human_requested'."""
         import app as app_module
         with app_module.app.test_client() as client:
-            with self._bypass_twilio_validation(), \
-                 patch("app.get_clinic_by_twilio_number", return_value=self.CLINIC), \
+            with patch("app.get_clinic_by_twilio_number", return_value=self.CLINIC), \
                  patch("app.is_human_escalation_request", return_value=True), \
                  patch("app.has_unresolved_human_flag", return_value=False), \
                  patch("app.write_conversation_flag") as mock_flag, \
@@ -658,8 +653,7 @@ class TestEscalationWebhookBehavior:
         """Second escalation: outbound suppressed (flag exists), run_ai still blocked."""
         import app as app_module
         with app_module.app.test_client() as client:
-            with self._bypass_twilio_validation(), \
-                 patch("app.get_clinic_by_twilio_number", return_value=self.CLINIC), \
+            with patch("app.get_clinic_by_twilio_number", return_value=self.CLINIC), \
                  patch("app.is_human_escalation_request", return_value=True), \
                  patch("app.has_unresolved_human_flag", return_value=True), \
                  patch("app.write_conversation_flag"), \
@@ -675,8 +669,7 @@ class TestEscalationWebhookBehavior:
         """Non-escalation messages must still reach run_ai."""
         import app as app_module
         with app_module.app.test_client() as client:
-            with self._bypass_twilio_validation(), \
-                 patch("app.get_clinic_by_twilio_number", return_value=self.CLINIC), \
+            with patch("app.get_clinic_by_twilio_number", return_value=self.CLINIC), \
                  patch("app.run_ai", return_value="Hello! How can I help?") as mock_run_ai:
 
                 self._post_whatsapp(client, "I want to book scaling")

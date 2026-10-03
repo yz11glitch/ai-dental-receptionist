@@ -994,7 +994,7 @@ class TestPhase1Hardening:
         """Daily summary returns 200 with correct secret."""
         from app import REMINDER_SECRET
         with app.app.test_client() as c:
-            response = c.get(f"/tasks/daily-summary?secret={REMINDER_SECRET}")
+            response = c.get("/tasks/daily-summary", headers={"X-Reminder-Secret": REMINDER_SECRET})
         assert response.status_code == 200
 
     @patch("app.send_telegram")
@@ -1002,7 +1002,7 @@ class TestPhase1Hardening:
         """Daily summary must call send_telegram."""
         from app import REMINDER_SECRET
         with app.app.test_client() as c:
-            c.get(f"/tasks/daily-summary?secret={REMINDER_SECRET}")
+            c.get("/tasks/daily-summary", headers={"X-Reminder-Secret": REMINDER_SECRET})
         mock_tg.assert_called_once()
 
 
@@ -1139,9 +1139,25 @@ class TestProductionImprovements:
             ).count()
         assert count == 0
 
-    def test_no_auth_token_skips_validation(self):
-        """When TWILIO_AUTH_TOKEN is not set, webhook signature check is skipped."""
+    def test_no_auth_token_rejects_unsigned_webhook(self):
+        """When TWILIO_AUTH_TOKEN is not set, the webhook fails closed (403)."""
         with patch("app.TWILIO_AUTH_TOKEN", None), \
+             patch("app.ALLOW_UNSIGNED_WEBHOOKS", False), \
+             patch("app.run_ai", return_value="ok") as mock_run_ai, \
+             patch("app.get_clinic_by_twilio_number", return_value=None):
+            with app.app.test_client() as c:
+                response = c.post("/whatsapp", data={
+                    "Body": "hello",
+                    "From": "+60123456789",
+                    "To": "+60100000000",
+                })
+        assert response.status_code == 403
+        mock_run_ai.assert_not_called()
+
+    def test_no_auth_token_skips_validation_with_explicit_dev_flag(self):
+        """ALLOW_UNSIGNED_WEBHOOKS=1 is the only way to accept unsigned webhooks."""
+        with patch("app.TWILIO_AUTH_TOKEN", None), \
+             patch("app.ALLOW_UNSIGNED_WEBHOOKS", True), \
              patch("app.run_ai", return_value="ok"), \
              patch("app.get_clinic_by_twilio_number", return_value=None):
             with app.app.test_client() as c:

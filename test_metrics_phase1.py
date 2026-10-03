@@ -3,6 +3,8 @@ from datetime import date, datetime, timedelta
 from unittest.mock import patch
 from zoneinfo import ZoneInfo
 
+from twilio.request_validator import RequestValidator
+
 # Must be set before importing app.
 os.environ.setdefault("OPENAI_API_KEY", "test-key")
 
@@ -51,14 +53,16 @@ CLINIC_B = {
 
 
 def _post_whatsapp(client, body, from_phone="+60199999999", to_phone=None):
-    return client.post(
-        "/whatsapp",
-        data={
-            "Body": body,
-            "From": from_phone,
-            "To": to_phone or CLINIC_A["twilio_number"],
-        },
+    """POST a correctly signed webhook (real Twilio signature validation runs)."""
+    data = {
+        "Body": body,
+        "From": from_phone,
+        "To": to_phone or CLINIC_A["twilio_number"],
+    }
+    signature = RequestValidator(app_module.TWILIO_AUTH_TOKEN).compute_signature(
+        "http://localhost/whatsapp", data
     )
+    return client.post("/whatsapp", data=data, headers={"X-Twilio-Signature": signature})
 
 
 def _fixed_local(hour=11):
@@ -102,7 +106,6 @@ def test_whatsapp_inbound_tracks_messages_and_conversations_once_per_day():
     fixed_day = _fixed_local(hour=11)
     with app.test_client() as client:
         with (
-            patch("app.TWILIO_AUTH_TOKEN", None),
             patch("app.get_clinic_by_twilio_number", return_value=CLINIC_A),
             patch("app.is_human_escalation_request", return_value=False),
             patch("app.run_ai", side_effect=_fake_run_ai),
@@ -125,7 +128,6 @@ def test_whatsapp_after_hours_tracks_after_hours_metric():
     late_night = _fixed_local(hour=21)
     with app.test_client() as client:
         with (
-            patch("app.TWILIO_AUTH_TOKEN", None),
             patch("app.get_clinic_by_twilio_number", return_value=CLINIC_A),
             patch("app.is_human_escalation_request", return_value=False),
             patch("app.run_ai", side_effect=_fake_run_ai),
@@ -143,7 +145,6 @@ def test_whatsapp_escalation_tracks_human_escalations():
     fixed_day = _fixed_local(hour=11)
     with app.test_client() as client:
         with (
-            patch("app.TWILIO_AUTH_TOKEN", None),
             patch("app.get_clinic_by_twilio_number", return_value=CLINIC_A),
             patch("app.is_human_escalation_request", return_value=True),
             patch("app.has_unresolved_human_flag", return_value=False),
@@ -163,7 +164,6 @@ def test_repeated_same_day_escalation_does_not_overcount_conversations_handled()
     fixed_day = _fixed_local(hour=11)
     with app.test_client() as client:
         with (
-            patch("app.TWILIO_AUTH_TOKEN", None),
             patch("app.get_clinic_by_twilio_number", return_value=CLINIC_A),
             patch("app.is_human_escalation_request", return_value=True),
             patch("app.has_unresolved_human_flag", side_effect=[False, True]),
@@ -226,7 +226,6 @@ def test_metrics_are_isolated_per_clinic():
 
     with app.test_client() as client:
         with (
-            patch("app.TWILIO_AUTH_TOKEN", None),
             patch("app.get_clinic_by_twilio_number", side_effect=lambda n: clinic_map.get(n)),
             patch("app.is_human_escalation_request", return_value=False),
             patch("app.run_ai", side_effect=_fake_run_ai),
@@ -417,7 +416,6 @@ def test_whatsapp_escalation_message_falls_back_when_no_human_number():
     clinic_no_number = {**CLINIC_A, "human_contact_number": "", "twilio_number": ""}
     with app.test_client() as client:
         with (
-            patch("app.TWILIO_AUTH_TOKEN", None),
             patch("app.get_clinic_by_twilio_number", return_value=clinic_no_number),
             patch("app.is_human_escalation_request", return_value=True),
             patch("app.has_unresolved_human_flag", return_value=False),
