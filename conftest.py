@@ -26,15 +26,16 @@ _TEST_ENV = {
     "TWILIO_WHATSAPP_FROM": "whatsapp:+14155238886",
     "GOOGLE_CALENDAR_ID": "primary",
     "REMINDER_SECRET": "test-reminder-secret",
+    "DASHBOARD_SECRET_KEY": "test-dashboard-secret-key",
 }
 
 for key, value in _TEST_ENV.items():
     os.environ.setdefault(key, value)
 
-# Run the suite against production defaults (signed webhooks, no admin
-# allow-list) regardless of the developer's shell; tests opt into dev
-# behaviour explicitly by patching app.ALLOW_UNSIGNED_WEBHOOKS.
-for key in ("ALLOW_UNSIGNED_WEBHOOKS", "DASHBOARD_ADMIN_EMAILS"):
+# Run the suite against production defaults (signed webhooks, /chat behind
+# login) regardless of the developer's shell; tests opt into dev behaviour
+# explicitly by patching app.DEV_MODE / app.ALLOW_UNSIGNED_WEBHOOKS.
+for key in ("APP_ENV", "ALLOW_UNSIGNED_WEBHOOKS", "DASHBOARD_ADMIN_EMAILS"):
     os.environ.pop(key, None)
 
 

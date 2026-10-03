@@ -4,6 +4,7 @@ import json
 import hmac
 import html
 import logging
+import secrets
 import urllib.request
 import urllib.parse
 from datetime import date, datetime, timedelta
@@ -47,6 +48,10 @@ def _env_flag(name: str) -> bool:
     return os.environ.get(name, "").strip().lower() in {"1", "true", "yes", "on"}
 
 
+# APP_ENV=development relaxes production-only requirements for local work
+# (random dashboard secret key, /chat test page without login).
+APP_ENV = os.environ.get("APP_ENV", "production").strip().lower()
+DEV_MODE = APP_ENV == "development"
 # Explicit opt-in to accept /whatsapp webhooks without a Twilio signature
 # (only for local testing when TWILIO_AUTH_TOKEN is not configured).
 ALLOW_UNSIGNED_WEBHOOKS = _env_flag("ALLOW_UNSIGNED_WEBHOOKS")
@@ -2774,8 +2779,17 @@ IMPORTANT:
 # Routes
 # -----------------------------------------------------------------------------
 
+def _require_chat_access() -> None:
+    """The /chat test page drives the LLM and calendar tools with no rate limit,
+    so it is only available in development mode or to a logged-in staff member."""
+    if DEV_MODE or session.get("staff_clinic_id"):
+        return
+    abort(403)
+
+
 @app.route("/chat", methods=["GET", "POST"])
 def chat():
+    _require_chat_access()
     user = "test_user"
 
     if request.method == "POST":
@@ -2834,6 +2848,7 @@ def chat():
 
 @app.route("/chat/reset", methods=["POST"])
 def chat_reset():
+    _require_chat_access()
     user = "test_user"
     reset_user_session(user)
     return redirect("/chat")
@@ -3075,9 +3090,28 @@ def home():
 
 from dashboard import dashboard_bp  # noqa: E402
 app.register_blueprint(dashboard_bp)
-app.secret_key = os.environ.get("DASHBOARD_SECRET_KEY", "dev-secret-change-in-prod")
+
+
+def _load_dashboard_secret_key() -> str:
+    """Session-signing key for the staff dashboard.
+
+    Required outside development. In development a random per-process key is
+    generated, so dashboard logins do not survive a restart.
+    """
+    key = os.environ.get("DASHBOARD_SECRET_KEY")
+    if key:
+        return key
+    if DEV_MODE:
+        logger.warning("DASHBOARD_SECRET_KEY not set — using a random key (APP_ENV=development)")
+        return secrets.token_hex(32)
+    raise RuntimeError(
+        "DASHBOARD_SECRET_KEY must be set (or set APP_ENV=development for local use)."
+    )
+
+
+app.secret_key = _load_dashboard_secret_key()
 
 
 if __name__ == "__main__":
     ensure_demo_clinic_seeded()
-    app.run(host="0.0.0.0", port=3000, debug=True)
+    app.run(host="0.0.0.0", port=3000, debug=_env_flag("FLASK_DEBUG"))
