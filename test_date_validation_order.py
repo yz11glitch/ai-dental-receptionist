@@ -17,6 +17,7 @@ os.environ["DATABASE_URL"] = "sqlite:///test_date_validation.db"
 import pytest
 from datetime import datetime, timedelta
 from unittest.mock import patch
+from zoneinfo import ZoneInfo
 
 from app import (
     check_date_available,
@@ -50,6 +51,17 @@ def make_clinic(special_closures=None, closure_notes=None):
         "special_closures": special_closures or [],
         "closure_notes": closure_notes or {},
     }
+
+
+# The tests below use literal April 2026 dates (e.g. 2026-04-12 is a Sunday).
+# check_date_available rejects past dates, so pin "now" to just before them;
+# otherwise these tests start failing once the real clock passes April 2026.
+FROZEN_NOW = datetime(2026, 4, 8, 10, 0, tzinfo=ZoneInfo("Asia/Kuala_Lumpur"))  # Wednesday
+
+
+@pytest.fixture(autouse=True)
+def _frozen_clock(freeze_now):
+    freeze_now(FROZEN_NOW)
 
 
 # ---------------------------------------------------------------------------
